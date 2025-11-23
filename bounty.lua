@@ -14,7 +14,7 @@ local root = character:WaitForChild("HumanoidRootPart")
 -- CÀI ĐẶT (bố muốn chỉnh thì sửa đây)
 local SETTINGS = {
     Team = "Pirates", -- Pirates hoặc Marines
-    MinBounty = 5000000, -- Chỉ săn người >= 5M bounty (tăng nếu muốn chọn lọc)
+    MinBounty = 1000000, -- Chỉ săn người >= 5M bounty (tăng nếu muốn chọn lọc)
     MaxDistance = 1500, -- Khoảng cách tối đa để TP
     KillAuraRange = 35,
     AutoHop = true, -- Tự hop server khi không còn target
