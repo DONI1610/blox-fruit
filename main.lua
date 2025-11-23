@@ -1,99 +1,121 @@
--- Bounty ESP Blox Fruits 2025 | By Grok (Custom)
+-- My Bounty Display Blox Fruits | Custom Grok - Siêu đơn giản
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
-local ESP = {}
-local Toggle = true
+-- Tạo ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MyBountyDisplay"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
+-- Frame chính (đẹp, bo góc, draggable)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 80)
+frame.Position = UDim2.new(0, 20, 0, 20)  -- Góc trên trái
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.new(1, 0.8, 0)  -- Vàng gold bounty
+stroke.Thickness = 2
+stroke.Parent = frame
+
+-- Text Bounty chính
+local bountyLabel = Instance.new("TextLabel")
+bountyLabel.Size = UDim2.new(1, -20, 0.7, 0)
+bountyLabel.Position = UDim2.new(0, 10, 0, 10)
+bountyLabel.BackgroundTransparency = 1
+bountyLabel.Text = "Bounty: Loading..."
+bountyLabel.TextColor3 = Color3.new(1, 1, 0)
+bountyLabel.TextScaled = true
+bountyLabel.Font = Enum.Font.GothamBold
+bountyLabel.Parent = frame
+
+-- Toggle text nhỏ
+local toggleLabel = Instance.new("TextLabel")
+toggleLabel.Size = UDim2.new(1, -20, 0.3, 0)
+toggleLabel.Position = UDim2.new(0, 10, 0.7, 0)
+toggleLabel.BackgroundTransparency = 1
+toggleLabel.Text = "Nhấn INSERT ẩn/hiện"
+toggleLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+toggleLabel.TextScaled = true
+toggleLabel.Font = Enum.Font.Gotham
+toggleLabel.Parent = frame
+
+-- Draggable (kéo thả thoải mái)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Toggle ON/OFF bằng INSERT
+local visible = true
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Insert then
-        Toggle = not Toggle
-        for _, v in pairs(ESP) do
-            if v then v.Enabled = Toggle end
-        end
+        visible = not visible
+        frame.Visible = visible
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Bounty ESP";
-            Text = Toggle and "ON 🔥" or "OFF";
-            Duration = 2
+            Title = "My Bounty";
+            Text = visible and "HIỂN THỊ" or "ẨN";
+            Duration = 1.5
         })
     end
 end)
 
-local function CreateESP(plr)
-    if plr == player or ESP[plr] then return end
-    
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    local head = char:WaitForChild("Head")
-    
-    local bb = Instance.new("BillboardGui")
-    bb.Name = "BountyESP"
-    bb.Parent = head
-    bb.Size = UDim2.new(0, 250, 0, 80)
-    bb.StudsOffset = Vector3.new(0, 3, 0)
-    bb.AlwaysOnTop = true
-    
-    local nameLbl = Instance.new("TextLabel", bb)
-    nameLbl.Size = UDim2.new(1, 0, 0.4, 0)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.Text = plr.Name .. " | Lv. ?"
-    nameLbl.TextColor3 = Color3.new(1,1,1)
-    nameLbl.TextScaled = true
-    nameLbl.Font = Enum.Font.GothamBold
-    
-    local bountyLbl = Instance.new("TextLabel", bb)
-    bountyLbl.Size = UDim2.new(1, 0, 0.6, 0)
-    bountyLbl.Position = UDim2.new(0,0,0.4,0)
-    bountyLbl.BackgroundTransparency = 1
-    bountyLbl.Text = "Bounty: 0"
-    bountyLbl.TextColor3 = Color3.new(1, 0.8, 0)
-    bountyLbl.TextScaled = true
-    bountyLbl.Font = Enum.Font.GothamBold
-    
-    -- Border đẹp
-    local stroke = Instance.new("UIStroke", nameLbl)
-    stroke.Color = Color3.new(0,0,0)
-    stroke.Thickness = 2
-    local stroke2 = Instance.new("UIStroke", bountyLbl)
-    stroke2.Color = Color3.new(0,0,0)
-    stroke2.Thickness = 2
-    
-    ESP[plr] = bb
-    
-    -- Update real-time
-    spawn(function()
-        while char.Parent do
-            wait(0.5)
-            local ls = plr:FindFirstChild("leaderstats")
-            if ls then
-                local lvl = ls:FindFirstChild("Level")
-                local bounty = ls:FindFirstChild("Bounty")
-                if lvl and bounty then
-                    nameLbl.Text = plr.Name .. " | Lv. " .. lvl.Value
-                    bountyLbl.Text = "Bounty: " .. bounty.Value .. "$"
-                    
-                    -- Color theo bounty (đỏ = rich target)
-                    if bounty.Value > 10e6 then
-                        bountyLbl.TextColor3 = Color3.new(1,0,0)
-                    elseif bounty.Value > 1e6 then
-                        bountyLbl.TextColor3 = Color3.new(1,0.5,0)
-                    end
-                end
+-- Update Bounty real-time
+RunService.Heartbeat:Connect(function()
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local bounty = leaderstats:FindFirstChild("Bounty")
+        if bounty then
+            bountyLabel.Text = "Bounty: " .. bounty.Value .. "$ 💰"
+            
+            -- Color theo bounty (đỏ = rich)
+            if bounty.Value > 10e6 then
+                bountyLabel.TextColor3 = Color3.new(1, 0, 0)
+                stroke.Color = Color3.new(1, 0, 0)
+            elseif bounty.Value > 1e6 then
+                bountyLabel.TextColor3 = Color3.new(1, 0.5, 0)
+                stroke.Color = Color3.new(1, 0.5, 0)
+            else
+                bountyLabel.TextColor3 = Color3.new(1, 1, 0)
+                stroke.Color = Color3.new(1, 0.8, 0)
             end
         end
-    end)
-end
-
--- Loop all players
-for _, plr in pairs(Players:GetPlayers()) do
-    CreateESP(plr)
-end
-
-Players.PlayerAdded:Connect(CreateESP)
-Players.PlayerRemoving:Connect(function(plr)
-    if ESP[plr] then ESP[plr]:Destroy() ESP[plr] = nil end
+    end
 end)
 
-print("Bounty ESP Loaded! Nhấn INSERT toggle 🚀")
-game.StarterGui:SetCore("SendNotification", {Title="Bounty ESP"; Text="ON | INSERT OFF"; Duration=3})
+print("My Bounty Display LOADED! Kéo thả + INSERT toggle 🚀")
+game.StarterGui:SetCore("SendNotification", {
+    Title = "My Bounty ON";
+    Text = "Góc trên trái | INSERT OFF";
+    Duration = 3
+})
