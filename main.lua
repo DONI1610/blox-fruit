@@ -100,81 +100,81 @@ local statsOn = true
 -- Draggable
 local dragging = false
 frame.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        local delta = i.Position
-        local pos = frame.Position
-        i.Changed:Connect(function()
-            if i.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-        game:GetService("UserInputService").InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                local d = input.Position - delta
-                frame.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
-            end
-        end)
-    end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        local delta = i.Position
+        local pos = frame.Position
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+        game:GetService("UserInputService").InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local d = input.Position - delta
+                frame.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
+            end
+        end)
+    end
 end)
 -- INSERT = ẩn hẳn
 UserInputService.InputBegan:Connect(function(i)
-    if i.KeyCode == Enum.KeyCode.Insert then
-        frame.Visible = not frame.Visible
-    end
+    if i.KeyCode == Enum.KeyCode.Insert then
+        frame.Visible = not frame.Visible
+    end
 end)
 -- TOGGLE STATS BUTTON
 toggleBtn.MouseButton1Click:Connect(function()
-    statsOn = not statsOn
-    statsFrame.Visible = statsOn
-    toggleBtn.Text = statsOn and "STATS ON" or "STATS OFF"
-    toggleBtn.BackgroundColor3 = statsOn and Color3.new(0,1,0) or Color3.new(1,0,0)
+    statsOn = not statsOn
+    statsFrame.Visible = statsOn
+    toggleBtn.Text = statsOn and "STATS ON" or "STATS OFF"
+    toggleBtn.BackgroundColor3 = statsOn and Color3.new(0,1,0) or Color3.new(1,0,0)
 end)
 -- Gửi webhook
 local function send(msg, color)
-    if WEBHOOK_URL == "https://discord.com/api/webhooks/1234567890/ABCDEF..." then
-        return -- chưa thay webhook thì không gửi
-    end
-    local data = {embeds = {{title = "Blox Fruits Bounty Alert", description = msg, color = color or 16766720, timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"), footer = {text = player.Name.. " • "..os.date("%H:%M")}}}}
-    pcall(function()
-        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
-    end)
+    if WEBHOOK_URL == "https://discord.com/api/webhooks/1234567890/ABCDEF..." then
+        return -- chưa thay webhook thì không gửi
+    end
+    local data = {embeds = {{title = "Blox Fruits Bounty Alert", description = msg, color = color or 16766720, timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"), footer = {text = player.Name.. " • "..os.date("%H:%M")}}}}
+    pcall(function()
+        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+    end)
 end
 -- Load + Update
 spawn(function() repeat wait() until player:FindFirstChild("leaderstats") end)
 RunService.Heartbeat:Connect(function()
-    local ls = player.leaderstats
-    if not ls then return end
-    local bounty = ls:FindFirstChild("Bounty/Honor")
-    if bounty then
-        local val = bounty.Value
-        if statsOn then
-            bountyLabel.Text = "Bounty/Honor: " .. val .. "$"
-            if val > 10000000 then
-                bountyLabel.TextColor3 = Color3.new(1,0,0)
-                stroke.Color = Color3.new(1,0,0)
-            elseif val > 1000000 then
-                bountyLabel.TextColor3 = Color3.new(1,0.5,0)
-                stroke.Color = Color3.new(1,0.5,0)
-            else
-                bountyLabel.TextColor3 = Color3.new(1,1,0)
-                stroke.Color = Color3.new(1,0.8,0)
-            end
-        end
-        -- AUTO GỬI +100k
-        local diff = val - oldBounty
-        if diff >= 100000 then
-            send("**Bounty mới: "..val.."$** | **+"..diff.."$**", val > 10000000 and 16711680 or 16755200)
-            oldBounty = val
-        end
-    end
-    if statsOn then
-        local lvl = ls:FindFirstChild("Level")
-        if lvl then levelLabel.Text = "Level: " .. lvl.Value end
-        local beli = ls:FindFirstChild("Beli")
-        local frag = ls:FindFirstChild("Fragments")
-        if beli and frag then
-            moneyLabel.Text = "Beli: "..beli.Value.."\nFrag: "..frag.Value
-        end
-    end
+    local ls = player.leaderstats
+    if not ls then return end
+    local bounty = ls:FindFirstChild("Bounty/Honor")
+    if bounty then
+        local val = bounty.Value
+        if statsOn then
+            bountyLabel.Text = "Bounty/Honor: " .. val .. "$"
+            if val > 10000000 then
+                bountyLabel.TextColor3 = Color3.new(1,0,0)
+                stroke.Color = Color3.new(1,0,0)
+            elseif val > 1000000 then
+                bountyLabel.TextColor3 = Color3.new(1,0.5,0)
+                stroke.Color = Color3.new(1,0.5,0)
+            else
+                bountyLabel.TextColor3 = Color3.new(1,1,0)
+                stroke.Color = Color3.new(1,0.8,0)
+            end
+        end
+        -- AUTO GỬI +100k
+        local diff = val - oldBounty
+        if diff >= 100000 then
+            send("**Bounty mới: `"..val.."$`** | **+"..diff.."$**", val > 10000000 and 16711680 or 16755200)
+            oldBounty = val
+        end
+    end
+    if statsOn then
+        local lvl = ls:FindFirstChild("Level")
+        if lvl then levelLabel.Text = "Level: " .. lvl.Value end
+        local beli = ls:FindFirstChild("Beli")
+        local frag = ls:FindFirstChild("Fragments")
+        if beli and frag then
+            moneyLabel.Text = "Beli: "..beli.Value.."\nFrag: "..frag.Value
+        end
+    end
 end)
 -- Thông báo loaded
 send("**SCRIPT ĐÃ LOAD!** "..player.Name.." đang online và săn bounty", 65280)
