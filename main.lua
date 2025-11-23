@@ -1,149 +1,183 @@
--- ═══════════════════════════════════════════════════════════
--- BLOX FRUITS ULTIMATE STATS 2025 | GIỮA MÀN HÌNH CHUẨN 100%
--- FPS RAINBOW + BOUNTY/LEVEL/BELI/FRAG + WEBHOOK NGAY + 5P
--- TEST TRÊN MOBILE DELTA & PC – HOÀN HẢO
--- ═══════════════════════════════════════════════════════════
-
+-- MY STATS CENTER + WEBHOOK CỨNG + TOGGLE | Blox Fruits 2025 | Grok Ultimate 🔥
+-- Chỉ cần execute là xong, không cần nhập webhook nữa!
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
-
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1440329549454770308/oYvPfxFwuIqaKnXFqSKJuBmIYg-nxmzrgPGi8AteK95IV-y3lC3PR3rhErBkvG3k_gH9"
-
--- GUI vào CoreGui để đè lên hết (giữa chuẩn mobile)
-local gui = Instance.new("ScreenGui")
-gui.Name = "UltimateStats2025"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = game:GetService("CoreGui")
-
--- Frame chính giữa
+-- WEBHOOK CỨNG Ở ĐÂY – THAY BẰNG WEBHOOK DISCORD CỦA MÀY (chỉ cần sửa 1 dòng này thôi!)
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1440329549454770308/oYvPfxFwuIqaKnXFqSKJuBmIYg-nxmzrgPGi8AteK95IV-y3lC3PR3rhErBkvG3k_gH9" -- THAY DÒNG NÀY NHA CU!!!
+-- Tạo ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MyStatsHardWebhook"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+-- Frame chính (CENTER MÀN HÌNH)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 460, 0, 340)
-frame.Position = UDim2.new(0.5, -230, 0.5, -170)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
-frame.BackgroundTransparency = 0.15
+frame.Size = UDim2.new(0, 340, 0, 180)
+frame.Position = UDim2.new(0.5, -170, 0.5, -90)
+frame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.1)
+frame.BackgroundTransparency = 0.1
 frame.BorderSizePixel = 0
-frame.Parent = gui
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 28)
-local stroke = Instance.new("UIStroke", frame)
-stroke.Thickness = 7
-stroke.Color = Color3.fromRGB(255, 180, 0)
-
--- TextLabel TO ĐÙNG
-local text = Instance.new("TextLabel", frame)
-text.Size = UDim2.new(1, -50, 1, -30)
-text.Position = UDim2.new(0, 25, 0, 15)
-text.BackgroundTransparency = 1
-text.Font = Enum.Font.GothamBlack
-text.TextSize = 50
-text.TextColor3 = Color3.new(1,1,1)
-text.TextStrokeTransparency = 0.5
-text.TextStrokeColor3 = Color3.new(0,0,0)
-text.TextXAlignment = Enum.TextXAlignment.Center
-text.TextYAlignment = Enum.TextYAlignment.Center
-
--- Nút HIDE/SHOW
-local btn = Instance.new("TextButton", gui)
-btn.Size = UDim2.new(0, 170, 0, 65)
-btn.Position = UDim2.new(1, -185, 1, -80)
-btn.BackgroundColor3 = Color3.fromRGB(0, 220, 0)
-btn.Text = "HIDE"
-btn.TextColor3 = Color3.new(1,1,1)
-btn.TextScaled = true
-btn.Font = Enum.Font.GothamBlack
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 16)
-
-local visible = true
-btn.MouseButton1Click:Connect(function()
-    visible = not visible
-    frame.Visible = visible
-    btn.Text = visible and "HIDE" or "SHOW"
-    btn.BackgroundColor3 = visible and Color3.fromRGB(0,220,0) or Color3.fromRGB(220,0,0)
+frame.Parent = screenGui
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 18)
+corner.Parent = frame
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.new(1, 0.8, 0)
+stroke.Thickness = 3
+stroke.Parent = frame
+-- Stats Frame (có thể tắt)
+local statsFrame = Instance.new("Frame")
+statsFrame.Size = UDim2.new(1, -20, 0.55, 0)
+statsFrame.Position = UDim2.new(0, 10, 0, 10)
+statsFrame.BackgroundTransparency = 1
+statsFrame.Parent = frame
+statsFrame.Visible = true
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0.25,0)
+title.BackgroundTransparency = 1
+title.Text = "MY STATS 💰"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = statsFrame
+-- Bounty
+local bountyLabel = Instance.new("TextLabel")
+bountyLabel.Size = UDim2.new(1,0,0.4,0)
+bountyLabel.Position = UDim2.new(0,0,0.25,0)
+bountyLabel.BackgroundTransparency = 1
+bountyLabel.Text = "Bounty/Honor: Loading..."
+bountyLabel.TextColor3 = Color3.new(1,1,0)
+bountyLabel.TextScaled = true
+bountyLabel.Font = Enum.Font.GothamBold
+bountyLabel.Parent = statsFrame
+-- Level + Beli/Frag
+local levelLabel = Instance.new("TextLabel")
+levelLabel.Size = UDim2.new(0.48,0,0.35,0)
+levelLabel.Position = UDim2.new(0,0,0.65,0)
+levelLabel.BackgroundTransparency = 1
+levelLabel.Text = "Level: ---"
+levelLabel.TextColor3 = Color3.new(0,1,0)
+levelLabel.TextScaled = true
+levelLabel.Parent = statsFrame
+local moneyLabel = Instance.new("TextLabel")
+moneyLabel.Size = UDim2.new(0.48,0,0.35,0)
+moneyLabel.Position = UDim2.new(0.52,0,0.65,0)
+moneyLabel.BackgroundTransparency = 1
+moneyLabel.Text = "Beli/Frag:\n---"
+moneyLabel.TextColor3 = Color3.new(0.8,0.8,1)
+moneyLabel.TextScaled = false
+moneyLabel.TextSize = 16
+moneyLabel.Parent = statsFrame
+-- Nút TOGGLE STATS (duy nhất cần bấm)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.9,0,0.25,0)
+toggleBtn.Position = UDim2.new(0.05,0,0.75,0)
+toggleBtn.BackgroundColor3 = Color3.new(0,1,0)
+toggleBtn.Text = "STATS ON"
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.TextScaled = true
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Parent = frame
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0,10)
+btnCorner.Parent = toggleBtn
+-- Hint nhỏ
+local hint = Instance.new("TextLabel")
+hint.Size = UDim2.new(1,-20,0.15,0)
+hint.Position = UDim2.new(0,10,0.88,0)
+hint.BackgroundTransparency = 1
+hint.Text = "INSERT: Ẩn hẳn | Kéo thả 👆"
+hint.TextColor3 = Color3.new(0.7,0.7,0.7)
+hint.TextScaled = true
+hint.Font = Enum.Font.Gotham
+hint.Parent = frame
+-- Variables
+local oldBounty = 0
+local statsOn = true
+-- Draggable
+local dragging = false
+frame.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        local delta = i.Position
+        local pos = frame.Position
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+        game:GetService("UserInputService").InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local d = input.Position - delta
+                frame.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
+            end
+        end)
+    end
 end)
-
--- FPS + Rainbow + Update
-local fps = 0 local count = 0 local last = tick()
-RunService.Heartbeat:Connect(function()
-    count += 1
-    if tick() - last >= 1 then
-        fps = count
-        count = 0
-        last = tick()
-    end
-
-    local ls = player:FindFirstChild("leaderstats")
-    if ls then
-        local bounty = (ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor") or {Value=0}).Value
-        local level = (ls:FindFirstChild("Level") or {Value=0}).Value
-        local beli = (ls:FindFirstChild("Beli") or {Value=0}).Value
-        local frag = (ls:FindFirstChild("Fragments") or ls:FindFirstChild("Fragment") or {Value=0}).Value
-
-        -- Rainbow color
-        local t = tick() * 3
-        local r = math.sin(t) * 127 + 128
-        local g = math.sin(t + 2) * 127 + 128
-        local b = math.sin(t + 4) * 127 + 128
-
-        -- Format số có dấu chấm
-        local function format(num)
-            return tostring(num):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%", "")
-        end
-
-        text.Text = string.format(
-            "FPS: %d\n\nBounty: %s$\nLevel: %d\nBeli: %s\nFragments: %s",
-            fps, format(bounty), level, format(beli), format(frag)
-        )
-        text.TextColor3 = Color3.fromRGB(r, g, b)
-
-        -- Viền đổi màu theo bounty
-        if bounty >= 30000000 then
-            stroke.Color = Color3.fromRGB(255, 0, 0)     -- 30M+ đỏ
-        elseif bounty >= 25000000 then
-            stroke.Color = Color3.fromRGB(255, 50, 50)   -- 25M+ đỏ nhạt
-        elseif bounty >= 10000000 then
-            stroke.Color = Color3.fromRGB(255, 120, 0)   -- 10M+ cam
-        else
-            stroke.Color = Color3.fromRGB(255, 180, 0)   -- dưới 10M vàng
-        end
-    end
+-- INSERT = ẩn hẳn
+UserInputService.InputBegan:Connect(function(i)
+    if i.KeyCode == Enum.KeyCode.Insert then
+        frame.Visible = not frame.Visible
+    end
 end)
-
--- Webhook ngay khi vào + mỗi 5 phút
-local function sendWebhook()
-    local ls = player.leaderstats
-    if not ls then return end
-    local b = (ls.Bounty or ls["Bounty/Honor"] or ls.Honor or {Value=0}).Value
-    local l = (ls.Level or {Value=0}).Value
-    local beli = (ls.Beli or {Value=0}).Value
-    local frag = (ls.Fragments or ls.Fragment or {Value=0}).Value
-
-    pcall(function()
-        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode({
-            embeds = {{
-                title = "Blox Fruits Stats",
-                description = string.format("**%s** đang online\nBounty: `%s$`\nLevel: `%d`\nBeli: `%s`\nFragments: `%s`", player.Name, b, l, beli, frag),
-                color = 3447003,
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-            }}
-        }))
-    end)
+-- TOGGLE STATS BUTTON
+toggleBtn.MouseButton1Click:Connect(function()
+    statsOn = not statsOn
+    statsFrame.Visible = statsOn
+    toggleBtn.Text = statsOn and "STATS ON" or "STATS OFF"
+    toggleBtn.BackgroundColor3 = statsOn and Color3.new(0,1,0) or Color3.new(1,0,0)
+end)
+-- Gửi webhook
+local function send(msg, color)
+    if WEBHOOK_URL == "https://discord.com/api/webhooks/1234567890/ABCDEF..." then
+        return -- chưa thay webhook thì không gửi
+    end
+    local data = {embeds = {{title = "Blox Fruits Bounty Alert", description = msg, color = color or 16766720, timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"), footer = {text = player.Name.. " • "..os.date("%H:%M")}}}}
+    pcall(function()
+        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+    end)
 end
-
-sendWebhook() -- Gửi ngay khi vào server
-spawn(function()
-    while wait(300) do -- 5 phút/lần
-        sendWebhook()
-    end
+-- Load + Update
+spawn(function() repeat wait() until player:FindFirstChild("leaderstats") end)
+RunService.Heartbeat:Connect(function()
+    local ls = player.leaderstats
+    if not ls then return end
+    local bounty = ls:FindFirstChild("Bounty/Honor")
+    if bounty then
+        local val = bounty.Value
+        if statsOn then
+            bountyLabel.Text = "Bounty/Honor: " .. val .. "$"
+            if val > 10000000 then
+                bountyLabel.TextColor3 = Color3.new(1,0,0)
+                stroke.Color = Color3.new(1,0,0)
+            elseif val > 1000000 then
+                bountyLabel.TextColor3 = Color3.new(1,0.5,0)
+                stroke.Color = Color3.new(1,0.5,0)
+            else
+                bountyLabel.TextColor3 = Color3.new(1,1,0)
+                stroke.Color = Color3.new(1,0.8,0)
+            end
+        end
+        -- AUTO GỬI +100k
+        local diff = val - oldBounty
+        if diff >= 100000 then
+            send("**Bounty mới: "..val.."$** | **+"..diff.."$**", val > 10000000 and 16711680 or 16755200)
+            oldBounty = val
+        end
+    end
+    if statsOn then
+        local lvl = ls:FindFirstChild("Level")
+        if lvl then levelLabel.Text = "Level: " .. lvl.Value end
+        local beli = ls:FindFirstChild("Beli")
+        local frag = ls:FindFirstChild("Fragments")
+        if beli and frag then
+            moneyLabel.Text = "Beli: "..beli.Value.."\nFrag: "..frag.Value
+        end
+    end
 end)
-
--- Thông báo load xong
-game.StarterGui:SetCore("SendNotification", {
-    Title = "ULTIMATE STATS 2025 ON";
-    Text = "Giữa chuẩn mobile/PC – To đẹp – FPS Rainbow – Webhook 5p";
-    Duration = 10
-})
+-- Thông báo loaded
+send("**SCRIPT ĐÃ LOAD!** "..player.Name.." đang online và săn bounty", 65280)
+game.StarterGui:SetCore("SendNotification", {Title="STATS + WEBHOOK ON"; Text="Webhook cứng rồi! Chỉ cần execute là bay"; Duration=5})
+print("WEBHOOK CỨNG LOADED ")
+thêm lever beli farg đi cu cập nhật webhook sau 5p
