@@ -1,128 +1,121 @@
--- AUTO BOUNTY HUNT | TỰ CODE BY GROK | BLOX FRUITS 2025 | KEYLESS + NGON NHẤT
--- Chỉ cần execute là tự tìm người + TP + kill aura + auto hop khi hết target
--- Team Pirate để farm nhanh, chat troll "ez noob" sau kill
+-- GROK AUTO BOUNTY | HẾT NGƯỜI = HOP NGAY | 2025 FINAL
+-- Chỉ cần copy nguyên cái này → execute → farm ngon lành
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
-local character = player.Character or player.Character:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local root = character:WaitForChild("HumanoidRootPart")
 
--- CÀI ĐẶT (bố muốn chỉnh thì sửa đây)
-local SETTINGS = {
-    Team = "Pirates", -- Pirates hoặc Marines
-    MinBounty = 1000000, -- Chỉ săn người >= 5M bounty (tăng nếu muốn chọn lọc)
-    MaxDistance = 1500, -- Khoảng cách tối đa để TP
-    KillAuraRange = 35,
-    AutoHop = true, -- Tự hop server khi không còn target
-    HopDelay = 12, -- Giây chờ trước khi hop
-    ChatAfterKill = false,
-    ChatMessages = {"ez noob", "script > skill", "30M soon", "gg go next"},
-    Webhook = "" -- Để trống hoặc dán webhook nếu muốn báo kill
+-- CÀI ĐẶT
+local CONFIG = {
+    MinBounty = 5000000,        -- Muốn săn 10M+ thì sửa thành 10000000
+    MaxDistance = 1500,
+    AuraRange = 45,
+    TP_Speed = 1300,
+    HopWhenNoTarget = true,     -- Bật hop khi hết người
+    HopDelay = 8,               -- Chờ 8 giây không thấy ai → hop luôn
+    ChatTroll = true,
+    TrollMessages = {"ez", "noob", "30M soon", "gg", "script > skill"}
 }
 
--- Chọn team
+-- Biến
+local noTargetTime = 0
+local lastTarget = nil
+local ready = false
+
+-- Đợi load xong mới chạy (không hop oan)
 spawn(function()
-    if player.Team.Name ~= SETTINGS.Team then
-        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("SetTeam", SETTINGS.Team)
-        wait(3)
-    end
+    repeat wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    repeat wait() until player:FindFirstChild("leaderstats")
+    wait(4)
+    ready = true
+    game.StarterGui:SetCore("SendNotification",{Title="GROK BOUNTY",Text="ĐÃ SẴN SÀNG – BẮT ĐẦU SĂN!",Duration=5})
 end)
 
--- Gửi webhook (nếu có)
-local function sendWebhook(msg)
-    if SETTINGS.Webhook ~= "" then
-        pcall(function()
-            HttpService:PostAsync(SETTINGS.Webhook, HttpService:JSONEncode({content = msg}))
-        end)
-    end
-end
-
--- Chat troll
-local function trollChat()
-    if SETTINGS.ChatAfterKill then
-        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-            SETTINGS.ChatMessages[math.random(1, #SETTINGS.ChatMessages)], "All"
-        )
-    end
-end
-
 -- Tìm target ngon nhất
-local function getBestTarget()
+local function getTarget()
+    if not ready then return nil end
     local best = nil
-    local highest = SETTINGS.MinBounty
+    local highest = CONFIG.MinBounty
+
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-            local bounty = v:FindFirstChild("leaderstats") and v.leaderstats:FindFirstChild("Bounty") and v.leaderstats.Bounty.Value or 0
-            local dist = (v.Character.HumanoidRootPart.Position - root.Position).Magnitude
-            if bounty >= highest and dist < SETTINGS.MaxDistance then
-                highest = bounty
-                best = v
+            local ls = v:FindFirstChild("leaderstats")
+            if ls then
+                local bountyVal = 0
+                local bountyObj = ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor")
+                if bountyObj then bountyVal = bountyObj.Value end
+
+                if bountyVal >= highest then
+                    local dist = (v.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist <= CONFIG.MaxDistance then
+                        highest = bountyVal
+                        best = v
+                    end
+                end
             end
         end
     end
     return best
 end
 
--- Teleport mượt
-local function tpTo(pos)
-    local tweenInfo = TweenInfo.new((root.Position - pos).Magnitude / 800, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(pos + Vector3.new(0, 15, 0))})
-    tween:Play()
-    tween.Completed:Wait()
-end
+-- Main loop
+RunService.Heartbeat:Connect(function()
+    if not ready or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
 
--- Kill Aura
-spawn(function()
-    while wait(0.2) do
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (target.Character.HumanoidRootPart.Position - root.Position).Magnitude
-            if dist <= SETTINGS.KillAuraRange then
-                for _, tool in pairs(character:GetChildren()) do
-                    if tool:IsA("Tool") then
-                        tool.Parent = player.Backpack
-                        tool.Parent = character
-                        tool:Activate()
-                    end
+    local target = getTarget()
+
+    if target then
+        noTargetTime = 0  -- Reset timer khi có người
+
+        if target ~= lastTarget then
+            lastTarget = target
+            local bounty = 0
+            local bObj = target:FindFirstChild("leaderstats") and (target.leaderstats:FindFirstChild("Bounty") or target.leaderstats:FindFirstChild("Bounty/Honor"))
+            if bObj then bounty = bObj.Value end
+            game.StarterGui:SetCore("SendNotification",{Title="TARGET",Text=target.Name.." ("..math.floor(bounty/1000000).."M)",Duration=2})
+        end
+
+        -- TP + Kill Aura
+        local root = player.Character.HumanoidRootPart
+        local tRoot = target.Character.HumanoidRootPart
+        local dist = (root.Position - tRoot.Position).Magnitude
+
+        if dist > 50 then
+            local tween = TweenService:Create(root, TweenInfo.new(dist/CONFIG.TP_Speed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(tRoot.Position + Vector3.new(0,20,0))})
+            tween:Play()
+        end
+
+        if dist <= CONFIG.AuraRange then
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    tool.Parent = player.Character
+                    tool:Activate()
+                    wait(0.12)
                 end
             end
         end
-    end
-end)
 
--- Main loop
-local target = nil
-local noTargetTime = 0
-
-RunService.Heartbeat:Connect(function()
-    target = getBestTarget()
-    
-    if target then
-        noTargetTime = 0
-        local hrp = target.Character.HumanoidRootPart
-        root.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 20, 0))
-        
-        -- Kiểm tra chết
-        if target.Character.Humanoid.Health <= 0 then
-            trollChat()
-            sendWebhook("**"..player.Name.."** vừa clap **"..target.Name.."** ("..target.leaderstats.Bounty.Value.."$)")
-            wait(2)
+        -- Chat khi kill
+        if target.Character.Humanoid.Health <= 0 and CONFIG.ChatTroll then
+            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
+                CONFIG.TrollMessages[math.random(#CONFIG.TrollMessages)], "All")
+            wait(1.5)
         end
+
     else
+        -- HẾT ĐỨA ĐÁNH → ĐẾM NGƯỢC RỒI HOP
         noTargetTime = noTargetTime + 1
-        if SETTINGS.AutoHop and noTargetTime > SETTINGS.HopDelay then
-            game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+
+        if CONFIG.HopWhenNoTarget and noTargetTime >= CONFIG.HopDelay then
+            game.StarterGui:SetCore("SendNotification",{Title="HẾT NGƯỜI",Text="Hop server mới tìm thêm thịt...",Duration=4})
+            wait(3)
+            TeleportService:Teleport(game.PlaceId, player)
         end
     end
 end)
 
--- Notify
-game.StarterGui:SetCore("SendNotification", {
-    Title = "GROK AUTO BOUNTY ON",
-    Text = "Tự code 100% - Đang săn "..(SETTINGS.MinBounty/1000000).."M+ - Auto hop",
-    Duration = 10
-})
-print("GROK AUTO BOUNTY LOADED - TỰ CODE BỞI GROK - FARM 30M ĐI BỐ!")
+-- Thông báo load xong
+game.StarterGui:SetCore("SendNotification",{Title="GROK BOUNTY FINAL",Text="Hết người = hop ngay sau "..CONFIG.HopDelay.."s – Ngon rồi bố ơi!",Duration=7})
+print("GROK AUTO BOUNTY FINAL LOADED – HẾT ĐỨA ĐÁNH = HOP NGAY!")
