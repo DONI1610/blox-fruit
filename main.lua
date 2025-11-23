@@ -153,4 +153,6 @@ RunService.Heartbeat:Connect(function()
 end)
 
 print("FIXED Stats Display LOADED! INSERT toggle 🚀")
-game.StarterGui:SetCore("SendNotification",
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Stats FIXED"; Text = "Bounty/Honor + Full | Góc trên trái"; Duration = 4
+})
