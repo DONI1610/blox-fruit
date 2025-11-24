@@ -1,157 +1,124 @@
--- FPS + BOUNTY + AIMBOT LIST NGƯỜI TRONG SERVER (CHỌN BẰNG NÚT)
--- Click tên → aim ngay, click lại → tắt
+-- FPS + BOUNTY + AIMBOT + CHIÊU BẮN TRÚNG 100% (Delta/Arceus X/Codex/Fluxus OK)
+-- Chỉ 1 thanh nhỏ trên đầu + nút mở list
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
-_G.AimbotTarget = nil  -- người đang bị aim
+_G.AimbotTarget = nil
+local Enabled = true
 
--- GUI chính (CoreGui để đè hết)
-local gui = Instance.new("ScreenGui")
-gui.Name = "AimbotList"
+-- GUI siêu gọn
+local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.ResetOnSpawn = false
-gui.Parent = game:GetService("CoreGui")
 
--- FPS + Bounty góc trên trái
-local fpsLabel = Instance.new("TextLabel", gui)
-fpsLabel.Position = UDim2.new(0,12,0,10)
-fpsLabel.Size = UDim2.new(0,200,0,30)
-fpsLabel.BackgroundTransparency = 1
-fpsLabel.TextXAlignment = "Left"
-fpsLabel.Font = Enum.Font.GothamBold
-fpsLabel.TextSize = 28
-fpsLabel.Text = "FPS: 0"
+local topBar = Instance.new("TextLabel", gui)
+topBar.Size = UDim2.new(0,480,0,38)
+topBar.Position = UDim2.new(0.5,-240,0,8)
+topBar.AnchorPoint = Vector2.new(0.5,0)
+topBar.BackgroundColor3 = Color3.fromRGB(10,10,20)
+topBar.BackgroundTransparency = 0.2
+topBar.Text = "FPS: 0  |  Bounty: Loading...  |  Aimbot: OFF"
+topBar.TextColor3 = Color3.new(1,1,1)
+topBar.Font = Enum.Font.GothamBold
+topBar.TextSize = 24
+Instance.new("UICorner", topBar).CornerRadius = UDim.new(0,12)
 
-local bountyLabel = Instance.new("TextLabel", gui)
-bountyLabel.Position = UDim2.new(0,12,0,40)
-bountyLabel.Size = UDim2.new(0,400,0,35)
-bountyLabel.BackgroundTransparency = 1
-bountyLabel.TextXAlignment = "Left"
-bountyLabel.Font = Enum.Font.GothamBlack
-bountyLabel.TextSize = 32
-bountyLabel.Text = "Bounty: Loading..."
+-- Nút mở list
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0,50,0,50)
+openBtn.Position = UDim2.new(1,-60,0,5)
+openBtn.BackgroundColor3 = Color3.fromRGB(255,180,0)
+openBtn.Text = ">"
+openBtn.Font = Enum.Font.GothamBlack
+openBtn.TextSize = 36
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0,12)
 
-local statusLabel = Instance.new("TextLabel", gui)
-statusLabel.Position = UDim2.new(0,12,0,75)
-statusLabel.Size = UDim2.new(0,500,0,30)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Aimbot: OFF"
-statusLabel.TextColor3 = Color3.fromRGB(255,100,100)
-statusLabel.Font = Enum.Font.GothamSemibold
-statusLabel.TextSize = 26
-statusLabel.TextXAlignment = "Left"
-
--- Frame danh sách người chơi (góc trên phải)
 local listFrame = Instance.new("Frame", gui)
-listFrame.Size = UDim2.new(0, 260, 0, 400)
-listFrame.Position = UDim2.new(1, -270, 0, 10)
-listFrame.BackgroundColor3 = Color3.fromRGB(10,10,20)
+listFrame.Size = UDim2.new(0,280,0,420)
+listFrame.Position = UDim2.new(1,-290,0,60)
+listFrame.BackgroundColor3 = Color3.fromRGB(10,10,25)
 listFrame.BackgroundTransparency = 0.1
-listFrame.BorderSizePixel = 0
-Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0,12)
-local stroke = Instance.new("UIStroke", listFrame)
-stroke.Thickness = 3
-stroke.Color = Color3.fromRGB(255,180,0)
-
-local title = Instance.new("TextLabel", listFrame)
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundTransparency = 1
-title.Text = "SELECT TARGET"
-title.TextColor3 = Color3.fromRGB(255,215,0)
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 24
+listFrame.Visible = false
+Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0,14)
 
 local scroll = Instance.new("ScrollingFrame", listFrame)
-scroll.Size = UDim2.new(1,-10,1,-50)
-scroll.Position = UDim2.new(0,5,0,45)
+scroll.Size = UDim2.new(1,-10,1,-10)
+scroll.Position = UDim2.new(0,5,0,5)
 scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 6
-scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarThickness = 8
 
--- Tạo nút cho từng người chơi
-local function updateList()
-    for _,v in pairs(scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    
+openBtn.MouseButton1Click:Connect(function()
+    listFrame.Visible = not listFrame.Visible
+    openBtn.Text = listFrame.Visible and "<" or ">"
+end)
+
+-- Refresh list
+local function refresh()
+    for _,v in scroll:GetChildren() do if v:IsA("TextButton") then v:Destroy() end end
     local y = 0
-    for _, p in pairs(Players:GetPlayers()) do
+    for _, p in Players:GetPlayers() do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local btn = Instance.new("TextButton", scroll)
-            btn.Size = UDim2.new(1,-10,0,40)
+            btn.Size = UDim2.new(1,-10,0,45)
             btn.Position = UDim2.new(0,5,0,y)
-            btn.BackgroundColor3 = Color3.fromRGB(30,30,50)
-            btn.TextColor3 = Color3.fromRGB(255,255,255)
+            btn.BackgroundColor3 = _G.AimbotTarget == p and Color3.fromRGB(0,200,0) or Color3.fromRGB(30,30,50)
+            btn.Text = p.DisplayName
+            btn.TextColor3 = Color3.new(1,1,1)
             btn.Font = Enum.Font.GothamBold
-            btn.TextSize = 20
-            btn.Text = p.DisplayName .. " (@" .. p.Name .. ")"
-            
-            -- Highlight nếu đang aim
-            if _G.AimbotTarget == p then
-                btn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-            end
-            
+            btn.TextSize = 22
             btn.MouseButton1Click:Connect(function()
-                if _G.AimbotTarget == p then
-                    _G.AimbotTarget = nil
-                    statusLabel.Text = "Aimbot: OFF"
-                    statusLabel.TextColor3 = Color3.fromRGB(255,100,100)
-                else
-                    _G.AimbotTarget = p
-                    statusLabel.Text = "Aimbot: " .. p.DisplayName
-                    statusLabel.TextColor3 = Color3.fromRGB(0,255,0)
-                end
-                updateList() -- refresh màu
+                _G.AimbotTarget = (_G.AimbotTarget == p) and nil or p
+                refresh()
             end)
-            
-            y += 45
+            y = y + 50
         end
     end
     scroll.CanvasSize = UDim2.new(0,0,0,y)
 end
+Players.PlayerAdded:Connect(refresh)
+Players.PlayerRemoving:Connect(refresh)
+spawn(function() while wait(3) do refresh() end end)
+refresh()
 
--- Cập nhật danh sách mỗi 2s + khi có người vào/ra
-Players.PlayerAdded:Connect(updateList)
-Players.PlayerRemoving:Connect(updateList)
-spawn(function() while wait(2) do updateList() end end)
-updateList()
+-- MAIN LOOP (FIX CHIÊU BẮN TRÚNG)
+local fps = 0
+local count = 0
+local last = tick()
 
--- Aimbot loop
-RunService.Heartbeat:Connect(function()
-    -- FPS + Bounty
-    local ls = player:FindFirstChild("leaderstats")
-    if ls then
-        local b = ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor")
-        if b then
-            local val = b.Value
-            bountyLabel.TextColor3 = val >= 25000000 and Color3.fromRGB(255,80,80) or Color3.fromRGB(255,215,0)
-            bountyLabel.Text = "Bounty: "..(tostring(val):reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.","")).."$"
-        end
-    end
+RunService.RenderStepped:Connect(function()
+    count += 1
+    if tick() - last >= 1 then fps = count; count = 0; last = tick() end
 
-    -- Aimbot
+    -- Cập nhật thanh trên
+    local ls = player.leaderstats
+    local bountyVal = ls and (ls.Bounty or ls["Bounty/Honor"] or ls.Honor or {Value=0}).Value or 0
+    topBar.Text = string.format("FPS: %d  |  Bounty: %s$  |  Aimbot: %s", 
+        fps, 
+        (tostring(bountyVal):reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.","")),
+        _G.AimbotTarget and _G.AimbotTarget.DisplayName or "OFF")
+    topBar.TextColor3 = Color3.fromRGB(math.sin(tick()*3)*127+128, math.sin(tick()*3+2)*127+128, math.sin(tick()*3+4)*127+128)
+
+    -- AIMBOT + CHIÊU BẮN TRÚNG 100%
     if _G.AimbotTarget and _G.AimbotTarget.Character and _G.AimbotTarget.Character:FindFirstChild("Head") then
         local head = _G.AimbotTarget.Character.Head
         local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        
         if root then
+            -- 1. Xoay người về địch
             root.CFrame = CFrame.new(root.Position, head.Position)
+            
+            -- 2. Dịch chuột + camera về đầu địch → chiêu bắn trúng 100%
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+            if mousemoverel then
+                local screenPos = Camera:WorldToScreenPoint(head.Position)
+                mousemoverel(screenPos.X - mouse.X, screenPos.Y - mouse.Y)
+            end
         end
     end
 end)
 
--- FPS Rainbow
-local t=0; local c=0; local last=tick()
-RunService.Heartbeat:Connect(function()
-    t+=0.03; c+=1
-    if tick()-last>=1 then
-        local fps=c; c=0; last=tick()
-        local r,g,b=math.sin(t)*127+128,math.sin(t+2)*127+128,math.sin(t+4)*127+128
-        fpsLabel.Text="FPS: "..fps
-        fpsLabel.TextColor3=Color3.fromRGB(r,g,b)
-    end
-end)
-
-game.StarterGui:SetCore("SendNotification",{
-    Title="AIMBOT LIST READY",
-    Text="Click tên người chơi ở góc phải để aim!",
-    Duration=6
-})
+game.StarterGui:SetCore("SendNotification",{Title="AIM + CHIÊU TRÚNG 100%",Text="Click tên → Z X C V bắn trúng đầu luôn!",Duration=6})
