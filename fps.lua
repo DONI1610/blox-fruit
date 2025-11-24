@@ -1,12 +1,9 @@
--- BLOX FRUITS 2025 | FPS + BOUNTY HIỆN NGAY + AIMBOT CHỌN NGƯỜI (MOBILE/PC HOÀN HẢO)
--- Bounty hiện ngay lập tức, không "Loading..." nữa
--- Nút TARGET to đùng góc phải trên – click mở list chọn người
-
+-- BLOX FRUITS 2025 | FPS + BOUNTY HIỆN NGAY + AIMBOT CHỌN NGƯỜI + NÚT TẮT NHANH
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-
 _G.AimbotTarget = nil
+_G.AimbotEnabled = true  -- mặc định bật
 local bountyValue = 0
 
 -- ===================== GUI =====================
@@ -15,7 +12,7 @@ gui.Name = "BloxAimbot2025"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 
--- Thanh trên cùng (FPS + Bounty + Status)
+-- Thanh trên cùng
 local topBar = Instance.new("TextLabel", gui)
 topBar.Size = UDim2.new(1, 0, 0, 50)
 topBar.Position = UDim2.new(0, 0, 0, 0)
@@ -28,19 +25,32 @@ topBar.TextSize = 28
 topBar.TextXAlignment = Enum.TextXAlignment.Center
 Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 12)
 
--- Nút TARGET to đùng (mobile dễ bấm)
+-- Nút TARGET (dịch trái để chừa chỗ nút tắt)
 local targetBtn = Instance.new("TextButton", gui)
 targetBtn.Size = UDim2.new(0, 100, 0, 100)
-targetBtn.Position = UDim2.new(1, -115, 0, 10)
+targetBtn.Position = UDim2.new(1, -230, 0, 10)
 targetBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 0)
 targetBtn.Text = "TARGET"
 targetBtn.TextColor3 = Color3.new(1, 1, 1)
 targetBtn.Font = Enum.Font.GothamBlack
-targetBtn.TextSize = 32
+targetBtn.TextSize = 28
 Instance.new("UICorner", targetBtn).CornerRadius = UDim.new(0, 24)
-local stroke = Instance.new("UIStroke", targetBtn)
-stroke.Thickness = 4
-stroke.Color = Color3.fromRGB(255, 200, 0)
+Instance.new("UIStroke", targetBtn).Thickness = 4
+Instance.new("UIStroke", targetBtn).Color = Color3.fromRGB(255, 200, 0)
+
+-- Nút TẮT/MỞ AIMBOT (mới)
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 100, 0, 100)
+toggleBtn.Position = UDim2.new(1, -115, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+toggleBtn.Text = "AIM\nON"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = Enum.Font.GothamBlack
+toggleBtn.TextSize = 28
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 24)
+local strokeToggle = Instance.new("UIStroke", toggleBtn)
+strokeToggle.Thickness = 4
+strokeToggle.Color = Color3.fromRGB(0, 255, 0)
 
 -- Danh sách người chơi
 local listFrame = Instance.new("Frame", gui)
@@ -74,6 +84,25 @@ targetBtn.MouseButton1Click:Connect(function()
     targetBtn.BackgroundColor3 = listFrame.Visible and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(255, 80, 0)
 end)
 
+-- Nút bật/tắt aimbot
+toggleBtn.MouseButton1Click:Connect(function()
+    _G.AimbotEnabled = not _G.AimbotEnabled
+    if _G.AimbotEnabled then
+        toggleBtn.Text = "AIM\nON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        strokeToggle.Color = Color3.fromRGB(0, 255, 0)
+    else
+        toggleBtn.Text = "AIM\nOFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        strokeToggle.Color = Color3.fromRGB(255, 0, 0)
+        _G.AimbotTarget = nil
+        updatePlayerList()
+        listFrame.Visible = false
+        targetBtn.Text = "TARGET"
+        targetBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 0)
+    end
+end)
+
 -- Cập nhật danh sách người chơi
 local function updatePlayerList()
     for _, v in pairs(scroll:GetChildren()) do
@@ -91,7 +120,7 @@ local function updatePlayerList()
             btn.Font = Enum.Font.GothamBold
             btn.TextSize = 28
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 14)
-            
+           
             btn.MouseButton1Click:Connect(function()
                 _G.AimbotTarget = (_G.AimbotTarget == p) and nil or p
                 updatePlayerList()
@@ -104,14 +133,14 @@ end
 
 Players.PlayerAdded:Connect(updatePlayerList)
 Players.PlayerRemoving:Connect(updatePlayerList)
-spawn(function() while wait(2) do updatePlayerList() end end)
+spawn(function() while task.wait(2) do updatePlayerList() end end)
 
--- Đợi leaderstats load chắc chắn rồi mới lấy bounty
+-- Lấy bounty hiện ngay
 spawn(function()
     local ls = player:WaitForChild("leaderstats", 30)
     if ls then
-        local bountyObj = ls:WaitForChild("Bounty", 10) or ls:WaitForChild("Bounty/Honor", 10) or ls:WaitForChild("Honor", 10)
-        if bountyObj then
+        local bountyObj = ls:WaitForChild("Bounty", 10) or ls:FindFirstChild("Honor")
+        if bountyObj and bountyObj:IsA("IntValue") or bountyObj:IsA("NumberValue") then
             bountyValue = bountyObj.Value
             bountyObj:GetPropertyChangedSignal("Value"):Connect(function()
                 bountyValue = bountyObj.Value
@@ -131,15 +160,14 @@ RunService.Heartbeat:Connect(function()
         fpsCount = 0
         lastTime = tick()
 
-        -- Cập nhật thanh trên
         local bountyText = string.format("%d", bountyValue):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "") .. "$"
-        topBar.Text = string.format("FPS: %d  |  Bounty: %s  |  Aimbot: %s", 
+        topBar.Text = string.format("FPS: %d | Bounty: %s | Aimbot: %s",
             fps,
             bountyText,
-            _G.AimbotTarget and _G.AimbotTarget.DisplayName or "OFF"
+            _G.AimbotEnabled and (_G.AimbotTarget and _G.AimbotTarget.DisplayName or "ON (chọn người)") or "OFF"
         )
 
-        -- Rainbow FPS
+        -- Rainbow hiệu ứng
         local t = tick() * 3
         topBar.TextColor3 = Color3.fromRGB(
             math.sin(t) * 127 + 128,
@@ -148,22 +176,22 @@ RunService.Heartbeat:Connect(function()
         )
     end
 
-    -- Aimbot: xoay người + camera về đầu địch
-    if _G.AimbotTarget and _G.AimbotTarget.Character and _G.AimbotTarget.Character:FindFirstChild("Head") then
+    -- Aimbot chỉ chạy khi bật + có target
+    if _G.AimbotEnabled and _G.AimbotTarget and _G.AimbotTarget.Character and _G.AimbotTarget.Character:FindFirstChild("Head") then
         local head = _G.AimbotTarget.Character.Head
         local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if root then
-            root.CFrame = CFrame.new(root.Position, head.Position)
+            root.CFrame = CFrame.new(root.Position, head.Position + Vector3.new(0, 1, 0)) -- nhắm hơi cao tí cho chuẩn
             workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, head.Position)
         end
     end
 end)
 
 -- Thông báo
-game.StarterGui:SetCore("SendNotification", {
-    Title = "SCRIPT SẴN SÀNG!",
-    Text = "Bấm nút TARGET góc phải trên để chọn người bắn!",
-    Duration = 8
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "AIM BY DONI",
+    Text = "fai fai sống dai thành huyền thoại",
+    Duration = 10
 })
 
-print("BLOX FRUITS AIMBOT 2025 ĐÃ HOÀN THIỆN – BOUNTY HIỆN NGAY – MOBILE SIÊU DỄ DÙNG")
+print("BLOX FRUITS AIMBOT 2025 + NÚT TẮT SIÊU ĐẸP HOÀN THIỆN - CHẠY NGON MOBILE/PC")
