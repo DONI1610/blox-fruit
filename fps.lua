@@ -1,135 +1,72 @@
--- FIX GIỮA MÀN HÌNH 100% MOBILE + PC | ĐÃ TEST TRÊN MOBILE LUÔN
--- Beli/Frag/FPS/Bounty hiện ngay, giữa thật sự, không lệch nữa
+-- FPS + BOUNTY GÓC TRÊN TRÁI | SIÊU NHẸ – KHÔNG UI – CHỈ 2 DÒNG CHỮ
+-- Copy xong execute là hiện luôn, đéo có frame, nút, viền gì hết
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1440329549454770308/oYvPfxFwuIqaKnXFqSKJuBmIYg-nxmzrgPGi8AteK95IV-y3lC3PR3rhErBkvG3k_gH9"
-
--- TẠO GUI VÀO CORE GUI ĐỂ ĐÈ LÊN TẤT CẢ (fix lệch mobile)
+-- Tạo 2 dòng chữ trong CoreGui (đè lên hết, hiện luôn)
 local gui = Instance.new("ScreenGui")
-gui.Name = "TrueCenterStats"
+gui.Name = "FPSBountyCorner"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.DisplayOrder = 999999
-gui.Parent = game:GetService("CoreGui")  -- ← QUAN TRỌNG NHẤT: CoreGui mới giữa thật trên mobile
+gui.Parent = game:GetService("CoreGui")
 
--- Frame giữa 100%
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 390, 0, 280)
-frame.Position = UDim2.new(0.5, -195, 0.5, -140)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(8, 8, 25)
-frame.BackgroundTransparency = 0.1
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 24)
-local stroke = Instance.new("UIStroke", frame)
-stroke.Thickness = 4
-stroke.Color = Color3.fromRGB(255, 180, 0)
-
--- FPS ở trên
-local fpsLabel = Instance.new("TextLabel", frame)
-fpsLabel.Size = UDim2.new(1, -40, 0, 55)
-fpsLabel.Position = UDim2.new(0, 20, 0, 8)
+-- FPS
+local fpsLabel = Instance.new("TextLabel", gui)
+fpsLabel.Position = UDim2.new(0, 12, 0, 10)
+fpsLabel.Size = UDim2.new(0, 200, 0, 30)
 fpsLabel.BackgroundTransparency = 1
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 28
+fpsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+fpsLabel.TextStrokeTransparency = 0.5
 fpsLabel.Text = "FPS: 0"
-fpsLabel.TextScaled = true
-fpsLabel.Font = Enum.Font.GothamBlack
 
 -- Bounty
-local bountyLabel = Instance.new("TextLabel", frame)
-bountyLabel.Size = UDim2.new(1, -40, 0, 55)
-bountyLabel.Position = UDim2.new(0, 20, 0, 65)
+local bountyLabel = Instance.new("TextLabel", gui)
+bountyLabel.Position = UDim2.new(0, 12, 0, 40)
+bountyLabel.Size = UDim2.new(0, 400, 0, 35)
 bountyLabel.BackgroundTransparency = 1
-bountyLabel.Text = "Bounty: Loading..."
-bountyLabel.TextScaled = true
+bountyLabel.TextXAlignment = Enum.TextXAlignment.Left
 bountyLabel.Font = Enum.Font.GothamBlack
-bountyLabel.TextColor3 = Color3.fromRGB(255,255,0)
+bountyLabel.TextSize = 32
+bountyLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+bountyLabel.TextStrokeTransparency = 0.5
+bountyLabel.Text = "Bounty: Loading..."
 
--- Level + Beli/Frag
-local levelLabel = Instance.new("TextLabel", frame)
-levelLabel.Size = UDim2.new(0.48, -20, 0, 50)
-levelLabel.Position = UDim2.new(0, 20, 0, 125)
-levelLabel.BackgroundTransparency = 1
-levelLabel.Text = "Level: ---"
-levelLabel.TextScaled = true
-levelLabel.Font = Enum.Font.GothamBold
-levelLabel.TextColor3 = Color3.fromRGB(0,255,0)
+-- FPS rainbow
+local t = 0
+local fpsCount = 0
+local lastTick = tick()
 
-local moneyLabel = Instance.new("TextLabel", frame)
-moneyLabel.Size = UDim2.new(0.48, -20, 0, 50)
-moneyLabel.Position = UDim2.new(0.52, 0, 0, 125)
-moneyLabel.BackgroundTransparency = 1
-moneyLabel.Text = "Beli: ---\nFrag: ---"
-moneyLabel.TextScaled = true
-moneyLabel.Font = Enum.Font.GothamBold
-moneyLabel.TextColor3 = Color3.fromRGB(100,220,255)
-
--- Toggle button
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 150, 0, 60)
-toggleBtn.Position = UDim2.new(1, -165, 1, -75)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(0,220,0)
-toggleBtn.Text = "HIDE ALL"
-toggleBtn.TextScaled = true
-toggleBtn.Font = Enum.Font.GothamBlack
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,15)
-
-local visible = true
-local function toggle()
-    visible = not visible
-    frame.Visible = visible
-    toggleBtn.Text = visible and "HIDE ALL" or "SHOW ALL"
-    toggleBtn.BackgroundColor3 = visible and Color3.fromRGB(0,220,0) or Color3.fromRGB(220,0,0)
-end
-toggleBtn.MouseButton1Click:Connect(toggle)
-UserInputService.InputBegan:Connect(function(k) if k.KeyCode == Enum.KeyCode.Insert then toggle() end end)
-
--- FPS + Update
-local t = 0; local fps = 0; local counter = 0; local last = tick()
 RunService.Heartbeat:Connect(function()
-    -- FPS Rainbow
-    t = t + 0.03
-    local r,g,b = math.sin(t)*127+128, math.sin(t+2)*127+128, math.sin(t+4)*127+128
-    counter += 1
-    if tick()-last >= 1 then fps = counter; counter = 0; last = tick() end
-    fpsLabel.Text = "FPS: " .. fps
-    fpsLabel.TextColor3 = Color3.fromRGB(r,g,b)
+    t += 0.03
+    fpsCount += 1
+    if tick() - lastTick >= 1 then
+        local fps = fpsCount
+        fpsCount = 0
+        lastTick = tick()
 
-    -- Stats
+        local r = math.sin(t) * 127 + 128
+        local g = math.sin(t + 2) * 127 + 128
+        local b = math.sin(t + 4) * 127 + 128
+
+        fpsLabel.Text = "FPS: " .. fps
+        fpsLabel.TextColor3 = Color3.fromRGB(r, g, b)
+    end
+
+    -- Update Bounty
     local ls = player:FindFirstChild("leaderstats")
     if ls then
         local bounty = ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor")
         if bounty then
-            bountyLabel.Text = "Bounty: " .. bounty.Value .. "$"
-            stroke.Color = bounty.Value >= 25000000 and Color3.fromRGB(255,30,30) or (bounty.Value >= 10000000 and Color3.fromRGB(255,150,0) or Color3.fromRGB(255,180,0))
-        end
-        if ls.Level then levelLabel.Text = "Level: " .. ls.Level.Value end
-        if ls.Beli and (ls.Fragments or ls.Fragment) then
-            local frag = ls.Fragments or ls.Fragment
-            moneyLabel.Text = "Beli: " .. ls.Beli.Value .. "\nFrag: " .. frag.Value
+            local val = bounty.Value
+            local color = val >= 25000000 and Color3.fromRGB(255,50,50) or Color3.fromRGB(255,215,0)
+            bountyLabel.TextColor3 = color
+            bountyLabel.Text = "Bounty: " .. string.format("%d", val):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "") .. "$"
         end
     end
 end)
 
--- Webhook ngay + 5p
-local function send() 
-    local ls = player.leaderstats
-    if ls then
-        local b = (ls.Bounty or ls["Bounty/Honor"] or ls.Honor).Value or 0
-        local l = ls.Level.Value or 0
-        local beli = ls.Beli.Value or 0
-        local frag = (ls.Fragments or ls.Fragment).Value or 0
-        pcall(function() HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode({embeds={{title="Stats Update",description=string.format("**%s**\nBounty: %s$\nLevel: %s\nBeli: %s\nFrag: %s",player.Name,b,l,beli,frag),color=3447003}}})) end)
-    end
-end
-send()
-spawn(function() while wait(300) do send() end end)
-
-game.StarterGui:SetCore("SendNotification",{Title="FIX GIỮA 100%",Text="CoreGui + IgnoreGuiInset – Giữa thật trên mobile rồi bố ơi!",Duration=8})
+print("FPS + BOUNTY GÓC TRÊN TRÁI DONE – SIÊU NHẸ, ĐẸP, KHÔNG UI")
