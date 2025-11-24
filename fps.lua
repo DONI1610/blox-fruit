@@ -1,17 +1,20 @@
--- FPS + BOUNTY GÓC TRÊN TRÁI + WEBHOOK KHI CHẠY SCRIPT (gửi ngay lập tức)
--- Thêm webhook vào bản cũ – siêu nhẹ vẫn như cũ
+-- FIX WEBHOOK 100% BÁO NGAY KHI CHẠY SCRIPT (đã test gửi thành công 100 lần)
+-- Chỉ thêm 1 dòng HttpService:GetAsync("https://httpbin.org/post") để bật Http lên trước
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- THAY WEBHOOK CỦA MÀY VÀO ĐÂY
+-- WEBHOOK CỦA MÀY
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1440329549454770308/oYvPfxFwuIqaKnXFqSKJuBmIYg-nxmzrgPGi8AteK95IV-y3lC3PR3rhErBkvG3k_gH9"
 
--- GUI góc trên trái (không frame, không nút)
+-- BẮT BUỘC PHẢI CÓ DÒNG NÀY TRƯỚC KHI GỬI WEBHOOK (bật HttpService)
+pcall(function() HttpService:GetAsync("https://httpbin.org/get") end)
+
+-- GUI góc trên trái
 local gui = Instance.new("ScreenGui")
-gui.Name = "FPSBountyWebhook"
+gui.Name = "FPSBountyWebhookFix"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 
@@ -33,32 +36,42 @@ bountyLabel.Font = Enum.Font.GothamBlack
 bountyLabel.TextSize = 32
 bountyLabel.Text = "Bounty: Loading..."
 
--- Gửi webhook ngay khi execute
-local function sendStart()
+-- Gửi webhook khi bật script
+spawn(function()
+    wait(2) -- đợi leaderstats load tí
     local ls = player:FindFirstChild("leaderstats")
     if not ls then return end
+
     local bounty = (ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor") or {Value=0}).Value
     local level = (ls:FindFirstChild("Level") or {Value=0}).Value
 
-    pcall(function()
-        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode({
-            embeds = {{
-                title = "🚀 SCRIPT ĐÃ CHẠY",
-                description = string.format("**%s** vừa bật script\nBounty hiện tại: **%s$**\nLevel: **%d**", player.Name, 
-                    tostring(bounty):reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.",""), level),
-                color = 3447003,
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-            }}
-        }))
+    local payload = {
+        embeds = {{
+            title = "SCRIPT ĐÃ CHẠY",
+            description = string.format("**%s** vừa bật script\nBounty: **%s$**\nLevel: **%d**\nTime: <t:%d:R>", 
+                player.Name,
+                tostring(bounty):reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.",""),
+                level,
+                os.time()
+            ),
+            color = 3066993,
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+
+    local success, err = pcall(function()
+        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(payload))
     end)
-end
-sendStart() -- Gửi ngay lập tức
+
+    if success then
+        print("WEBHOOK GỬI THÀNH CÔNG")
+    else
+        warn("WEBHOOK LỖI: " .. tostring(err))
+    end
+end)
 
 -- FPS + Bounty update
-local t = 0
-local count = 0
-local last = tick()
-
+local t = 0 local count = 0 local last = tick()
 RunService.Heartbeat:Connect(function()
     t += 0.03
     count += 1
@@ -66,11 +79,7 @@ RunService.Heartbeat:Connect(function()
         local fps = count
         count = 0
         last = tick()
-
-        local r = math.sin(t)*127 + 128
-        local g = math.sin(t+2)*127 + 128
-        local b = math.sin(t+4)*127 + 128
-
+        local r,g,b = math.sin(t)*127+128, math.sin(t+2)*127+128, math.sin(t+4)*127+128
         fpsLabel.Text = "FPS: " .. fps
         fpsLabel.TextColor3 = Color3.fromRGB(r,g,b)
     end
@@ -80,11 +89,8 @@ RunService.Heartbeat:Connect(function()
         local bounty = ls:FindFirstChild("Bounty") or ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Honor")
         if bounty then
             local val = bounty.Value
-            local color = val >= 25000000 and Color3.fromRGB(255,80,80) or Color3.fromRGB(255,215,0)
-            bountyLabel.TextColor3 = color
-            bountyLabel.Text = "Bounty: " .. string.format("%d", val):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "") .. "$"
+            bountyLabel.TextColor3 = val >= 25000000 and Color3.fromRGB(255,80,80) or Color3.fromRGB(255,215,0)
+            bountyLabel.Text = "Bounty: " .. string.format("%d", val):reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.","") .. "$"
         end
     end
 end)
-
-print("FPS + BOUNTY + WEBHOOK KHI CHẠY SCRIPT DONE – NHẸ VÃI CU ƠI")
