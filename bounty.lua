@@ -1,15 +1,16 @@
--- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD WEBHOOK (ARCEUS X)
+-- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD WEBHOOK (ARCEUS X – STABLE)
 
+-- ================= SERVICES =================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
--- ===== WEBHOOK =====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA" -- đổi webhook
+-- ================= WEBHOOK =================
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
 
--- ===== HTTP (EXECUTOR) =====
+-- ================= HTTP (EXECUTOR) =================
 local request = http_request or request or (syn and syn.request)
 if not request then
     warn("[SCRIPT] Executor không hỗ trợ http_request")
@@ -48,12 +49,18 @@ beliLabel.Font = Enum.Font.GothamBold
 beliLabel.TextSize = 26
 beliLabel.Text = "Beli: --"
 
--- ============ HELPER ============
+-- ================= HELPER =================
 local function formatNumber(n)
-    return tostring(n):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+    if typeof(n) ~= "number" then
+        return "0"
+    end
+    n = math.floor(n)
+    local s = tostring(n)
+    s = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
+    return s:gsub("^%.", "")
 end
 
--- ============ GET DATA ============
+-- ================= GET DATA =================
 local function getBounty()
     local ls = player:FindFirstChild("leaderstats")
     if not ls then return 0 end
@@ -75,34 +82,43 @@ local function getLevel()
     return lv and lv.Value or 0
 end
 
--- ============ WEBHOOK ============
+-- ================= WEBHOOK FUNCTION =================
 local function sendWebhook(reason)
-    if not request then return end
+    if not request then
+        warn("[WEBHOOK] request not supported")
+        return
+    end
 
-    local payload = {
-        content = string.format(
-            "[%s]\nUser: %s\nLevel: %d\nBounty: %s$\nBeli: %s",
-            reason,
-            player.Name,
-            getLevel(),
-            formatNumber(getBounty()),
-            formatNumber(getBeli())
-        )
-    }
+    local ok, err = pcall(function()
+        local payload = {
+            content = string.format(
+                "[%s]\nUser: %s\nLevel: %d\nBounty: %s$\nBeli: %s",
+                reason,
+                player.Name,
+                getLevel(),
+                formatNumber(getBounty()),
+                formatNumber(getBeli())
+            )
+        }
 
-    request({
-        Url = WEBHOOK_URL,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = HttpService:JSONEncode(payload)
-    })
+        request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(payload)
+        })
+    end)
 
-    print("[WEBHOOK] Sent ->", reason)
+    if ok then
+        print("[WEBHOOK] Sent ->", reason)
+    else
+        warn("[WEBHOOK ERROR]", err)
+    end
 end
 
--- ===== THÔNG BÁO KHI SCRIPT CHẠY =====
+-- ================= START LOG =================
 print("=== SCRIPT STARTED ===")
 print("User  :", player.Name)
 print("Level :", getLevel())
@@ -110,18 +126,19 @@ print("Bounty:", getBounty())
 print("Beli  :", getBeli())
 print("======================")
 
+-- gửi sau 5s
 task.delay(5, function()
     sendWebhook("SCRIPT START")
 end)
 
--- ===== GỬI LẠI MỖI 5 PHÚT =====
+-- gửi lại mỗi 5 phút
 task.spawn(function()
     while task.wait(300) do
         sendWebhook("AUTO UPDATE (5 MIN)")
     end
 end)
 
--- ============ FPS + GUI UPDATE ============
+-- ================= FPS + GUI UPDATE =================
 local frames = 0
 local last = tick()
 local hue = 0
