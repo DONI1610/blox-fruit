@@ -1,4 +1,4 @@
--- FPS + BOUNTY (TOP-LEFT) + DISCORD WEBHOOK (ARCEUS FIX)
+-- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD WEBHOOK (ARCEUS X)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -6,10 +6,10 @@ local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
--- ==== WEBHOOK ====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
+-- ===== WEBHOOK =====
+local WEBHOOK_URL = "https://discord.com/api/webhooks/ID/TOKEN" -- NÊN DÙNG WEBHOOK MỚI
 
--- ==== HTTP CHO EXECUTOR ====
+-- ===== HTTP (EXECUTOR) =====
 local request = http_request or request or (syn and syn.request)
 if not request then
     warn("Executor không hỗ trợ http_request")
@@ -17,7 +17,7 @@ end
 
 -- ================= GUI =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "FPS_BOUNTY_GUI"
+gui.Name = "FPS_BOUNTY_BELI_GUI"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 
@@ -37,39 +37,56 @@ bountyLabel.BackgroundTransparency = 1
 bountyLabel.TextXAlignment = Enum.TextXAlignment.Left
 bountyLabel.Font = Enum.Font.GothamBlack
 bountyLabel.TextSize = 30
-bountyLabel.Text = "Bounty: Loading..."
+bountyLabel.Text = "Bounty: --"
+
+local beliLabel = Instance.new("TextLabel", gui)
+beliLabel.Position = UDim2.new(0, 12, 0, 68)
+beliLabel.Size = UDim2.new(0, 420, 0, 28)
+beliLabel.BackgroundTransparency = 1
+beliLabel.TextXAlignment = Enum.TextXAlignment.Left
+beliLabel.Font = Enum.Font.GothamBold
+beliLabel.TextSize = 26
+beliLabel.Text = "Beli: --"
 
 -- ============ HELPER ============
 local function formatNumber(n)
     return tostring(n):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
 end
 
--- ============ WEBHOOK (EXECUTOR) ============
+-- ============ GET DATA ============
+local function getBounty()
+    local ls = player:FindFirstChild("leaderstats")
+    if not ls then return 0 end
+    local b = ls:FindFirstChild("Bounty")
+        or ls:FindFirstChild("Bounty/Honor")
+        or ls:FindFirstChild("Honor")
+    return b and b.Value or 0
+end
+
+local function getBeli()
+    local data = player:FindFirstChild("Data")
+    local b = data and data:FindFirstChild("Beli")
+    return b and b.Value or 0
+end
+
+local function getLevel()
+    local ls = player:FindFirstChild("leaderstats")
+    return (ls and ls:FindFirstChild("Level") and ls.Level.Value) or 0
+end
+
+-- ============ WEBHOOK ============
 local function sendWebhook()
     task.spawn(function()
         task.wait(5)
-
         if not request then return end
-
-        local ls = player:FindFirstChild("leaderstats")
-        local bounty = 0
-        local level = 0
-
-        if ls then
-            local b =
-                ls:FindFirstChild("Bounty")
-                or ls:FindFirstChild("Bounty/Honor")
-                or ls:FindFirstChild("Honor")
-            bounty = b and b.Value or 0
-            level = (ls:FindFirstChild("Level") and ls.Level.Value) or 0
-        end
 
         local payload = {
             content = string.format(
-                "%s bật script | Bounty: %s$ | Level: %d",
+                "%s bật script\nBounty: %s$\nBeli: %s\nLevel: %d",
                 player.Name,
-                formatNumber(bounty),
-                level
+                formatNumber(getBounty()),
+                formatNumber(getBeli()),
+                getLevel()
             )
         }
 
@@ -82,13 +99,13 @@ local function sendWebhook()
             Body = HttpService:JSONEncode(payload)
         })
 
-        print("[WEBHOOK] Sent (Arceus)")
+        print("[WEBHOOK] Sent (Bounty + Beli)")
     end)
 end
 
 sendWebhook()
 
--- ============ FPS + BOUNTY UPDATE ============
+-- ============ FPS + GUI UPDATE ============
 local frames = 0
 local last = tick()
 local hue = 0
@@ -109,21 +126,15 @@ RunService.Heartbeat:Connect(function()
         )
     end
 
-    local ls = player:FindFirstChild("leaderstats")
-    if not ls then return end
+    local bounty = getBounty()
+    bountyLabel.Text = "Bounty: " .. formatNumber(bounty) .. "$"
+    bountyLabel.TextColor3 = bounty >= 25000000
+        and Color3.fromRGB(255, 80, 80)
+        or Color3.fromRGB(255, 215, 0)
 
-    local bountyObj =
-        ls:FindFirstChild("Bounty")
-        or ls:FindFirstChild("Bounty/Honor")
-        or ls:FindFirstChild("Honor")
-
-    if bountyObj then
-        local v = bountyObj.Value
-        bountyLabel.Text = "Bounty: " .. formatNumber(v) .. "$"
-        bountyLabel.TextColor3 = v >= 25000000
-            and Color3.fromRGB(255, 80, 80)
-            or Color3.fromRGB(255, 215, 0)
-    end
+    local beli = getBeli()
+    beliLabel.Text = "Beli: " .. formatNumber(beli)
+    beliLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
 end)
 
-print("FPS + BOUNTY + WEBHOOK (ARCEUS) READY")
+print("FPS + BOUNTY + BELI + WEBHOOK READY (ARCEUS X)")
