@@ -7,12 +7,12 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 -- ===== WEBHOOK =====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/ID/TOKEN" -- NÊN DÙNG WEBHOOK MỚI
+local WEBHOOK_URL = "https://discord.com/api/webhooks/ID/TOKEN" -- đổi webhook
 
 -- ===== HTTP (EXECUTOR) =====
 local request = http_request or request or (syn and syn.request)
 if not request then
-    warn("Executor không hỗ trợ http_request")
+    warn("[SCRIPT] Executor không hỗ trợ http_request")
 end
 
 -- ================= GUI =================
@@ -70,40 +70,56 @@ local function getBeli()
 end
 
 local function getLevel()
-    local ls = player:FindFirstChild("leaderstats")
-    return (ls and ls:FindFirstChild("Level") and ls.Level.Value) or 0
+    local data = player:FindFirstChild("Data")
+    local lv = data and data:FindFirstChild("Level")
+    return lv and lv.Value or 0
 end
 
 -- ============ WEBHOOK ============
-local function sendWebhook()
-    task.spawn(function()
-        task.wait(5)
-        if not request then return end
+local function sendWebhook(reason)
+    if not request then return end
 
-        local payload = {
-            content = string.format(
-                "%s bật script\nBounty: %s$\nBeli: %s\nLevel: %d",
-                player.Name,
-                formatNumber(getBounty()),
-                formatNumber(getBeli()),
-                getLevel()
-            )
-        }
+    local payload = {
+        content = string.format(
+            "[%s]\nUser: %s\nLevel: %d\nBounty: %s$\nBeli: %s",
+            reason,
+            player.Name,
+            getLevel(),
+            formatNumber(getBounty()),
+            formatNumber(getBeli())
+        )
+    }
 
-        request({
-            Url = WEBHOOK_URL,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode(payload)
-        })
+    request({
+        Url = WEBHOOK_URL,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode(payload)
+    })
 
-        print("[WEBHOOK] Sent (Bounty + Beli)")
-    end)
+    print("[WEBHOOK] Sent ->", reason)
 end
 
-sendWebhook()
+-- ===== THÔNG BÁO KHI SCRIPT CHẠY =====
+print("=== SCRIPT STARTED ===")
+print("User  :", player.Name)
+print("Level :", getLevel())
+print("Bounty:", getBounty())
+print("Beli  :", getBeli())
+print("======================")
+
+task.delay(5, function()
+    sendWebhook("SCRIPT START")
+end)
+
+-- ===== GỬI LẠI MỖI 5 PHÚT =====
+task.spawn(function()
+    while task.wait(300) do
+        sendWebhook("AUTO UPDATE (5 MIN)")
+    end
+end)
 
 -- ============ FPS + GUI UPDATE ============
 local frames = 0
@@ -137,4 +153,4 @@ RunService.Heartbeat:Connect(function()
     beliLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
 end)
 
-print("FPS + BOUNTY + BELI + WEBHOOK READY (ARCEUS X)")
+print("FPS + BOUNTY + BELI + WEBHOOK READY (AUTO 5 MIN)")
