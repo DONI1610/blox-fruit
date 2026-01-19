@@ -7,7 +7,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 -- ===== WEBHOOK =====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/ID/TOKEN" -- đổi webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA" -- đổi webhook
 
 -- ===== HTTP (EXECUTOR) =====
 local request = http_request or request or (syn and syn.request)
