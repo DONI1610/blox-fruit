@@ -1,4 +1,4 @@
--- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD WEBHOOK (ARCEUS X – STABLE)
+-- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD EMBED WEBHOOK (ARCEUS X – STABLE)
 
 -- ================= SERVICES =================
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 -- ================= WEBHOOK =================
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
 
--- ================= HTTP (EXECUTOR) =================
+-- ================= HTTP =================
 local request = http_request or request or (syn and syn.request)
 if not request then
     warn("[SCRIPT] Executor không hỗ trợ http_request")
@@ -51,94 +51,100 @@ beliLabel.Text = "Beli: --"
 
 -- ================= HELPER =================
 local function formatNumber(n)
-    if typeof(n) ~= "number" then
-        return "0"
-    end
-    n = math.floor(n)
-    local s = tostring(n)
+    if typeof(n) ~= "number" then return "0" end
+    local s = tostring(math.floor(n))
     s = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
     return s:gsub("^%.", "")
 end
 
 -- ================= GET DATA =================
-local function getBounty()
-    local ls = player:FindFirstChild("leaderstats")
-    if not ls then return 0 end
-    local b = ls:FindFirstChild("Bounty")
-        or ls:FindFirstChild("Bounty/Honor")
-        or ls:FindFirstChild("Honor")
-    return b and b.Value or 0
+local function getLevel()
+    local d = player:FindFirstChild("Data")
+    local v = d and d:FindFirstChild("Level")
+    return v and v.Value or 0
 end
 
 local function getBeli()
-    local data = player:FindFirstChild("Data")
-    local b = data and data:FindFirstChild("Beli")
-    return b and b.Value or 0
+    local d = player:FindFirstChild("Data")
+    local v = d and d:FindFirstChild("Beli")
+    return v and v.Value or 0
 end
 
-local function getLevel()
-    local data = player:FindFirstChild("Data")
-    local lv = data and data:FindFirstChild("Level")
-    return lv and lv.Value or 0
+local function getBounty()
+    local ls = player:FindFirstChild("leaderstats")
+    if not ls then return 0 end
+    local v = ls:FindFirstChild("Bounty")
+        or ls:FindFirstChild("Bounty/Honor")
+        or ls:FindFirstChild("Honor")
+    return v and v.Value or 0
 end
 
--- ================= WEBHOOK FUNCTION =================
-local function sendWebhook(reason)
-    if not request then
-        warn("[WEBHOOK] request not supported")
-        return
-    end
+-- ================= DISCORD EMBED =================
+local function sendEmbed(reason)
+    if not request then return end
+
+    local payload = {
+        username = "Status Bot",
+        embeds = {{
+            title = reason,
+            color = 16776960, -- vàng
+            fields = {
+                {
+                    name = "👤 User",
+                    value = player.Name,
+                    inline = false
+                },
+                {
+                    name = "📊 Stats",
+                    value =
+                        "**Level:** " .. getLevel() ..
+                        "\n**Beli:** " .. formatNumber(getBeli()) ..
+                        "\n**Bounty:** " .. formatNumber(getBounty()) .. "$",
+                    inline = false
+                }
+            },
+            footer = {
+                text = "Auto update mỗi 5 phút"
+            },
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
 
     local ok, err = pcall(function()
-        local payload = {
-            content = string.format(
-                "[%s]\nUser: %s\nLevel: %d\nBounty: %s$\nBeli: %s",
-                reason,
-                player.Name,
-                getLevel(),
-                formatNumber(getBounty()),
-                formatNumber(getBeli())
-            )
-        }
-
         request({
             Url = WEBHOOK_URL,
             Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
+            Headers = { ["Content-Type"] = "application/json" },
             Body = HttpService:JSONEncode(payload)
         })
     end)
 
     if ok then
-        print("[WEBHOOK] Sent ->", reason)
+        print("[WEBHOOK] Sent embed ->", reason)
     else
         warn("[WEBHOOK ERROR]", err)
     end
 end
 
--- ================= START LOG =================
+-- ================= START =================
 print("=== SCRIPT STARTED ===")
 print("User  :", player.Name)
 print("Level :", getLevel())
-print("Bounty:", getBounty())
 print("Beli  :", getBeli())
+print("Bounty:", getBounty())
 print("======================")
 
--- gửi sau 5s
 task.delay(5, function()
-    sendWebhook("SCRIPT START")
+    sendEmbed("🔔 STATUS START")
 end)
 
--- gửi lại mỗi 5 phút
 task.spawn(function()
     while task.wait(300) do
-        sendWebhook("AUTO UPDATE (5 MIN)")
+        sendEmbed("⏱ AUTO UPDATE")
     end
 end)
 
--- ================= FPS + GUI UPDATE =================
+-- ================= FPS UPDATE =================
 local frames = 0
 local last = tick()
 local hue = 0
@@ -165,9 +171,7 @@ RunService.Heartbeat:Connect(function()
         and Color3.fromRGB(255, 80, 80)
         or Color3.fromRGB(255, 215, 0)
 
-    local beli = getBeli()
-    beliLabel.Text = "Beli: " .. formatNumber(beli)
-    beliLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
+    beliLabel.Text = "Beli: " .. formatNumber(getBeli())
 end)
 
-print("FPS + BOUNTY + BELI + WEBHOOK READY (AUTO 5 MIN)")
+print("FPS + GUI + DISCORD EMBED READY (AUTO 5 MIN)")
