@@ -5,7 +5,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 -- THAY WEBHOOK CỦA MÀY VÀO ĐÂY (tạo mới nếu cũ die)
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1440329549454770308/oYvPfxFwuIqaKnXFqSKJuBmIYg-nxmzrgPGi8AteK95IV-y3lC3PR3rhErBkvG3k_gH9"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
 
 -- GUI góc trên trái (siêu nhẹ, no frame)
 local gui = Instance.new("ScreenGui")
