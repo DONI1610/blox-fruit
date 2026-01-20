@@ -1,7 +1,7 @@
--- FPS + BOUNTY + BELI + FRAGMENTS (TOP-LEFT)
--- DISCORD WEBHOOK EMBED (AUTO 5 MIN)
--- AUTO REJOIN WHEN DISCONNECT / ERROR
--- TESTED: ARCEUS X
+-- =========================================================
+-- FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK + AUTO REJOIN
+-- + SERVER HOP BUTTON (STABLE MERGED VERSION)
+-- =========================================================
 
 -- ================= SERVICES =================
 local Players = game:GetService("Players")
@@ -11,19 +11,20 @@ local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
+local PlaceId = game.PlaceId
+local JobId = game.JobId
 
 -- ================= WEBHOOK =================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA" -- đổi webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
 
--- ================= HTTP =================
 local request = http_request or request or (syn and syn.request)
 if not request then
     warn("[SCRIPT] Executor không hỗ trợ http_request")
 end
 
--- ================= GUI =================
+-- ================= GUI ROOT =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "FPS_BOUNTY_BELI_FRAG_GUI"
+gui.Name = "BF_FULL_GUI"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
@@ -82,7 +83,6 @@ end
 -- ================= WEBHOOK =================
 local function sendWebhook(reason)
     if not request then return end
-
     pcall(function()
         request({
             Url = WEBHOOK_URL,
@@ -90,26 +90,21 @@ local function sendWebhook(reason)
             Headers = { ["Content-Type"] = "application/json" },
             Body = HttpService:JSONEncode({
                 embeds = {{
-                    title = "🍌 Blox Fruits Status",
+                    title = "Blox Fruits Status",
                     description = "**"..reason.."**",
-                    color = 16705372,
+                    color = 3447003,
                     fields = {
+                        { name = "Player", value = player.Name, inline = true },
                         {
-                            name = "👤 Player",
-                            value = player.Name,
-                            inline = true
-                        },
-                        {
-                            name = "📊 Stats",
+                            name = "Stats",
                             value =
-                                "**Level:** "..getLevel()..
+                                "**Level:** "..formatNumber(getLevel())..
                                 "\n**Beli:** "..formatNumber(getBeli())..
-                                "\n**Bounty:** "..formatNumber(getBounty()).."$"..
+                                "\n**Bounty:** "..formatNumber(getBounty())..
                                 "\n**Fragments:** "..formatNumber(getFragments()),
                             inline = false
                         }
                     },
-                    footer = { text = "Auto update every 5 minutes" },
                     timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
                 }}
             })
@@ -117,7 +112,6 @@ local function sendWebhook(reason)
     end)
 end
 
--- ================= START WEBHOOK =================
 task.delay(5, function()
     sendWebhook("SCRIPT STARTED")
 end)
@@ -138,21 +132,76 @@ pcall(function()
 
     overlay.ChildAdded:Connect(function(child)
         if child.Name == "ErrorPrompt" then
-            warn("[AUTO REJOIN] Disconnected, rejoining...")
             sendWebhook("DISCONNECTED - REJOIN")
-
             task.wait(2)
-            pcall(function()
-                child:Destroy()
-            end)
-
+            pcall(function() child:Destroy() end)
             task.wait(3)
-            TeleportService:Teleport(game.PlaceId, player)
+            TeleportService:Teleport(PlaceId, player)
         end
     end)
 end)
 
--- ================= FPS + UPDATE =================
+-- ================= SERVER HOP =================
+local hopping = false
+
+local function getServers()
+    local servers, cursor = {}, ""
+    repeat
+        local url =
+            "https://games.roblox.com/v1/games/"..PlaceId..
+            "/servers/Public?sortOrder=Asc&limit=100"..
+            (cursor ~= "" and "&cursor="..cursor or "")
+
+        local ok, res = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet(url))
+        end)
+        if not ok or not res then break end
+
+        for _, v in ipairs(res.data or {}) do
+            if v.id ~= JobId and v.playing < v.maxPlayers then
+                table.insert(servers, v.id)
+            end
+        end
+
+        cursor = res.nextPageCursor or ""
+    until cursor == ""
+
+    return servers
+end
+
+local function hopServer()
+    if hopping then return end
+    hopping = true
+
+    sendWebhook("SERVER HOP")
+
+    local servers = getServers()
+    if #servers > 0 then
+        TeleportService:TeleportToPlaceInstance(
+            PlaceId,
+            servers[math.random(#servers)],
+            player
+        )
+    else
+        TeleportService:Teleport(PlaceId, player)
+    end
+end
+
+-- ================= HOP BUTTON =================
+local hopBtn = Instance.new("TextButton", gui)
+hopBtn.Size = UDim2.new(0, 90, 0, 32)
+hopBtn.Position = UDim2.new(1, -100, 0, 10)
+hopBtn.Text = "HOP SV"
+hopBtn.Font = Enum.Font.GothamBold
+hopBtn.TextSize = 16
+hopBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+hopBtn.TextColor3 = Color3.new(1,1,1)
+hopBtn.BorderSizePixel = 0
+Instance.new("UICorner", hopBtn).CornerRadius = UDim.new(0, 8)
+
+hopBtn.MouseButton1Click:Connect(hopServer)
+
+-- ================= FPS + UI UPDATE =================
 local frames, last, hue = 0, tick(), 0
 
 RunService.Heartbeat:Connect(function()
@@ -163,7 +212,6 @@ RunService.Heartbeat:Connect(function()
         fpsLabel.Text = "FPS: " .. frames
         frames = 0
         last = tick()
-
         fpsLabel.TextColor3 = Color3.fromRGB(
             math.sin(hue) * 127 + 128,
             math.sin(hue + 2) * 127 + 128,
@@ -171,7 +219,7 @@ RunService.Heartbeat:Connect(function()
         )
     end
 
-    bountyLabel.Text = "Bounty: " .. formatNumber(getBounty()) .. "$"
+    bountyLabel.Text = "Bounty: " .. formatNumber(getBounty())
     bountyLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 
     beliLabel.Text = "Beli: " .. formatNumber(getBeli())
@@ -181,4 +229,4 @@ RunService.Heartbeat:Connect(function()
     fragLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
 end)
 
-print("READY | FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK + AUTO REJOIN")
+print("READY | FULL SCRIPT: FPS + STATS + WEBHOOK + AUTO REJOIN + SERVER HOP")
