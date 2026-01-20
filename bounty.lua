@@ -1,4 +1,6 @@
--- FPS + BOUNTY + BELI (TOP-LEFT) + DISCORD EMBED WEBHOOK (ARCEUS X – STABLE)
+-- FPS + BOUNTY + BELI + FRAGMENTS (TOP-LEFT)
+-- DISCORD WEBHOOK EMBED (AUTO 5 MIN)
+-- TESTED: ARCEUS X
 
 -- ================= SERVICES =================
 local Players = game:GetService("Players")
@@ -18,140 +20,127 @@ end
 
 -- ================= GUI =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "FPS_BOUNTY_BELI_GUI"
+gui.Name = "FPS_BOUNTY_BELI_FRAG_GUI"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 
-local fpsLabel = Instance.new("TextLabel", gui)
-fpsLabel.Position = UDim2.new(0, 12, 0, 10)
-fpsLabel.Size = UDim2.new(0, 200, 0, 28)
-fpsLabel.BackgroundTransparency = 1
-fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-fpsLabel.Font = Enum.Font.GothamBold
-fpsLabel.TextSize = 26
-fpsLabel.Text = "FPS: 0"
+local function newLabel(y, size, font)
+    local t = Instance.new("TextLabel", gui)
+    t.Position = UDim2.new(0, 12, 0, y)
+    t.Size = UDim2.new(0, 450, 0, size)
+    t.BackgroundTransparency = 1
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Font = font
+    t.TextSize = size
+    return t
+end
 
-local bountyLabel = Instance.new("TextLabel", gui)
-bountyLabel.Position = UDim2.new(0, 12, 0, 38)
-bountyLabel.Size = UDim2.new(0, 420, 0, 32)
-bountyLabel.BackgroundTransparency = 1
-bountyLabel.TextXAlignment = Enum.TextXAlignment.Left
-bountyLabel.Font = Enum.Font.GothamBlack
-bountyLabel.TextSize = 30
+local fpsLabel    = newLabel(10, 26, Enum.Font.GothamBold)
+local bountyLabel = newLabel(38, 30, Enum.Font.GothamBlack)
+local beliLabel   = newLabel(70, 26, Enum.Font.GothamBold)
+local fragLabel   = newLabel(98, 26, Enum.Font.GothamBold)
+
+fpsLabel.Text    = "FPS: 0"
 bountyLabel.Text = "Bounty: --"
+beliLabel.Text   = "Beli: --"
+fragLabel.Text   = "Fragments: --"
 
-local beliLabel = Instance.new("TextLabel", gui)
-beliLabel.Position = UDim2.new(0, 12, 0, 68)
-beliLabel.Size = UDim2.new(0, 420, 0, 28)
-beliLabel.BackgroundTransparency = 1
-beliLabel.TextXAlignment = Enum.TextXAlignment.Left
-beliLabel.Font = Enum.Font.GothamBold
-beliLabel.TextSize = 26
-beliLabel.Text = "Beli: --"
-
--- ================= HELPER =================
+-- ================= FORMAT =================
 local function formatNumber(n)
     if typeof(n) ~= "number" then return "0" end
-    local s = tostring(math.floor(n))
+    n = math.floor(n)
+    local s = tostring(n)
     s = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
     return s:gsub("^%.", "")
 end
 
 -- ================= GET DATA =================
-local function getLevel()
-    local d = player:FindFirstChild("Data")
-    local v = d and d:FindFirstChild("Level")
-    return v and v.Value or 0
+local function getBounty()
+    local ls = player:FindFirstChild("leaderstats")
+    if not ls then return 0 end
+    local b = ls:FindFirstChild("Bounty")
+        or ls:FindFirstChild("Bounty/Honor")
+        or ls:FindFirstChild("Honor")
+    return b and b.Value or 0
 end
 
 local function getBeli()
     local d = player:FindFirstChild("Data")
-    local v = d and d:FindFirstChild("Beli")
-    return v and v.Value or 0
+    local b = d and d:FindFirstChild("Beli")
+    return b and b.Value or 0
 end
 
-local function getBounty()
-    local ls = player:FindFirstChild("leaderstats")
-    if not ls then return 0 end
-    local v = ls:FindFirstChild("Bounty")
-        or ls:FindFirstChild("Bounty/Honor")
-        or ls:FindFirstChild("Honor")
-    return v and v.Value or 0
+local function getFragments()
+    local d = player:FindFirstChild("Data")
+    local f = d and d:FindFirstChild("Fragments")
+    return f and f.Value or 0
 end
 
--- ================= DISCORD EMBED =================
-local function sendEmbed(reason)
+local function getLevel()
+    local d = player:FindFirstChild("Data")
+    local l = d and d:FindFirstChild("Level")
+    return l and l.Value or 0
+end
+
+-- ================= WEBHOOK =================
+local function sendWebhook(reason)
     if not request then return end
 
     local payload = {
-        username = "Status Bot",
         embeds = {{
-            title = reason,
-            color = 16776960, -- vàng
+            title = "🍌 Blox Fruits Status",
+            description = "**"..reason.."**",
+            color = 16705372,
             fields = {
                 {
-                    name = "👤 User",
+                    name = "👤 Player",
                     value = player.Name,
-                    inline = false
+                    inline = true
                 },
                 {
                     name = "📊 Stats",
                     value =
-                        "**Level:** " .. getLevel() ..
-                        "\n**Beli:** " .. formatNumber(getBeli()) ..
-                        "\n**Bounty:** " .. formatNumber(getBounty()) .. "$",
+                        "**Level:** "..getLevel()..
+                        "\n**Beli:** "..formatNumber(getBeli())..
+                        "\n**Bounty:** "..formatNumber(getBounty()).."$"..
+                        "\n**Fragments:** "..formatNumber(getFragments()),
                     inline = false
                 }
             },
             footer = {
-                text = "Auto update mỗi 5 phút"
+                text = "Auto update every 5 minutes"
             },
             timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
         }}
     }
 
-    local ok, err = pcall(function()
+    pcall(function()
         request({
             Url = WEBHOOK_URL,
             Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
+            Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode(payload)
         })
     end)
-
-    if ok then
-        print("[WEBHOOK] Sent embed ->", reason)
-    else
-        warn("[WEBHOOK ERROR]", err)
-    end
 end
 
 -- ================= START =================
-print("=== SCRIPT STARTED ===")
-print("User  :", player.Name)
-print("Level :", getLevel())
-print("Beli  :", getBeli())
-print("Bounty:", getBounty())
-print("======================")
-
 task.delay(5, function()
-    sendEmbed("🔔 STATUS START")
+    sendWebhook("SCRIPT STARTED")
 end)
 
 task.spawn(function()
     while task.wait(300) do
-        sendEmbed("⏱ AUTO UPDATE")
+        sendWebhook("AUTO UPDATE (5 MIN)")
     end
 end)
 
--- ================= FPS UPDATE =================
-local frames = 0
-local last = tick()
-local hue = 0
+-- ================= FPS + UPDATE =================
+local frames, last, hue = 0, tick(), 0
 
 RunService.Heartbeat:Connect(function()
     frames += 1
-    hue += 0.03
+    hue += 0.04
 
     if tick() - last >= 1 then
         fpsLabel.Text = "FPS: " .. frames
@@ -165,13 +154,14 @@ RunService.Heartbeat:Connect(function()
         )
     end
 
-    local bounty = getBounty()
-    bountyLabel.Text = "Bounty: " .. formatNumber(bounty) .. "$"
-    bountyLabel.TextColor3 = bounty >= 25000000
-        and Color3.fromRGB(255, 80, 80)
-        or Color3.fromRGB(255, 215, 0)
+    bountyLabel.Text = "Bounty: " .. formatNumber(getBounty()) .. "$"
+    bountyLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 
     beliLabel.Text = "Beli: " .. formatNumber(getBeli())
+    beliLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
+
+    fragLabel.Text = "Fragments: " .. formatNumber(getFragments())
+    fragLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
 end)
 
-print("FPS + GUI + DISCORD EMBED READY (AUTO 5 MIN)")
+print("READY | FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK")
