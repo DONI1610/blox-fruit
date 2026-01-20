@@ -1,16 +1,19 @@
 -- FPS + BOUNTY + BELI + FRAGMENTS (TOP-LEFT)
 -- DISCORD WEBHOOK EMBED (AUTO 5 MIN)
+-- AUTO REJOIN WHEN DISCONNECT / ERROR
 -- TESTED: ARCEUS X
 
 -- ================= SERVICES =================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 
 -- ================= WEBHOOK =================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1448861704568963095/8TsAmk08AwtX06g_HOrgM1gmY_KlCagueGf-5VCdqh6KCJXvF3lSMYYYGcvGgY5ng8rA" -- đổi webhook
 
 -- ================= HTTP =================
 local request = http_request or request or (syn and syn.request)
@@ -22,7 +25,7 @@ end
 local gui = Instance.new("ScreenGui")
 gui.Name = "FPS_BOUNTY_BELI_FRAG_GUI"
 gui.ResetOnSpawn = false
-gui.Parent = game:GetService("CoreGui")
+gui.Parent = CoreGui
 
 local function newLabel(y, size, font)
     local t = Instance.new("TextLabel", gui)
@@ -32,6 +35,7 @@ local function newLabel(y, size, font)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Font = font
     t.TextSize = size
+    t.Text = "--"
     return t
 end
 
@@ -40,18 +44,11 @@ local bountyLabel = newLabel(38, 30, Enum.Font.GothamBlack)
 local beliLabel   = newLabel(70, 26, Enum.Font.GothamBold)
 local fragLabel   = newLabel(98, 26, Enum.Font.GothamBold)
 
-fpsLabel.Text    = "FPS: 0"
-bountyLabel.Text = "Bounty: --"
-beliLabel.Text   = "Beli: --"
-fragLabel.Text   = "Fragments: --"
-
 -- ================= FORMAT =================
 local function formatNumber(n)
-    if typeof(n) ~= "number" then return "0" end
+    n = tonumber(n) or 0
     n = math.floor(n)
-    local s = tostring(n)
-    s = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
-    return s:gsub("^%.", "")
+    return tostring(n):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.","")
 end
 
 -- ================= GET DATA =================
@@ -86,45 +83,41 @@ end
 local function sendWebhook(reason)
     if not request then return end
 
-    local payload = {
-        embeds = {{
-            title = "🍌 Blox Fruits Status",
-            description = "**"..reason.."**",
-            color = 16705372,
-            fields = {
-                {
-                    name = "👤 Player",
-                    value = player.Name,
-                    inline = true
-                },
-                {
-                    name = "📊 Stats",
-                    value =
-                        "**Level:** "..getLevel()..
-                        "\n**Beli:** "..formatNumber(getBeli())..
-                        "\n**Bounty:** "..formatNumber(getBounty()).."$"..
-                        "\n**Fragments:** "..formatNumber(getFragments()),
-                    inline = false
-                }
-            },
-            footer = {
-                text = "Auto update every 5 minutes"
-            },
-            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-        }}
-    }
-
     pcall(function()
         request({
             Url = WEBHOOK_URL,
             Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(payload)
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode({
+                embeds = {{
+                    title = "🍌 Blox Fruits Status",
+                    description = "**"..reason.."**",
+                    color = 16705372,
+                    fields = {
+                        {
+                            name = "👤 Player",
+                            value = player.Name,
+                            inline = true
+                        },
+                        {
+                            name = "📊 Stats",
+                            value =
+                                "**Level:** "..getLevel()..
+                                "\n**Beli:** "..formatNumber(getBeli())..
+                                "\n**Bounty:** "..formatNumber(getBounty()).."$"..
+                                "\n**Fragments:** "..formatNumber(getFragments()),
+                            inline = false
+                        }
+                    },
+                    footer = { text = "Auto update every 5 minutes" },
+                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+                }}
+            })
         })
     end)
 end
 
--- ================= START =================
+-- ================= START WEBHOOK =================
 task.delay(5, function()
     sendWebhook("SCRIPT STARTED")
 end)
@@ -133,6 +126,30 @@ task.spawn(function()
     while task.wait(300) do
         sendWebhook("AUTO UPDATE (5 MIN)")
     end
+end)
+
+-- ================= AUTO REJOIN =================
+pcall(function()
+    local promptGui = CoreGui:WaitForChild("RobloxPromptGui", 10)
+    if not promptGui then return end
+
+    local overlay = promptGui:WaitForChild("promptOverlay", 10)
+    if not overlay then return end
+
+    overlay.ChildAdded:Connect(function(child)
+        if child.Name == "ErrorPrompt" then
+            warn("[AUTO REJOIN] Disconnected, rejoining...")
+            sendWebhook("DISCONNECTED - REJOIN")
+
+            task.wait(2)
+            pcall(function()
+                child:Destroy()
+            end)
+
+            task.wait(3)
+            TeleportService:Teleport(game.PlaceId, player)
+        end
+    end)
 end)
 
 -- ================= FPS + UPDATE =================
@@ -164,4 +181,4 @@ RunService.Heartbeat:Connect(function()
     fragLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
 end)
 
-print("READY | FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK")
+print("READY | FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK + AUTO REJOIN")
