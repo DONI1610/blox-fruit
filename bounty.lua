@@ -1,6 +1,8 @@
 -- =========================================================
--- FPS + BOUNTY + BELI + FRAGMENTS + WEBHOOK + AUTO REJOIN
--- + SERVER HOP BUTTON (STABLE MERGED VERSION)
+-- FULL BLOX FRUITS STATUS HUB
+-- FPS + STATS + FIGHTING STYLE + FRUIT + WEAPON
+-- DISCORD WEBHOOK EMBED + AUTO REJOIN + SERVER HOP
+-- TESTED: ARCEUS X
 -- =========================================================
 
 -- ================= SERVICES =================
@@ -22,16 +24,16 @@ if not request then
     warn("[SCRIPT] Executor không hỗ trợ http_request")
 end
 
--- ================= GUI ROOT =================
+-- ================= GUI =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "BF_FULL_GUI"
+gui.Name = "BF_FULL_STATUS_GUI"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
 local function newLabel(y, size, font)
     local t = Instance.new("TextLabel", gui)
     t.Position = UDim2.new(0, 12, 0, y)
-    t.Size = UDim2.new(0, 450, 0, size)
+    t.Size = UDim2.new(0, 500, 0, size)
     t.BackgroundTransparency = 1
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Font = font
@@ -52,7 +54,7 @@ local function formatNumber(n)
     return tostring(n):reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.","")
 end
 
--- ================= GET DATA =================
+-- ================= GET BASIC DATA =================
 local function getBounty()
     local ls = player:FindFirstChild("leaderstats")
     if not ls then return 0 end
@@ -64,54 +66,138 @@ end
 
 local function getBeli()
     local d = player:FindFirstChild("Data")
-    local b = d and d:FindFirstChild("Beli")
-    return b and b.Value or 0
+    return d and d:FindFirstChild("Beli") and d.Beli.Value or 0
 end
 
 local function getFragments()
     local d = player:FindFirstChild("Data")
-    local f = d and d:FindFirstChild("Fragments")
-    return f and f.Value or 0
+    return d and d:FindFirstChild("Fragments") and d.Fragments.Value or 0
 end
 
 local function getLevel()
     local d = player:FindFirstChild("Data")
-    local l = d and d:FindFirstChild("Level")
-    return l and l.Value or 0
+    return d and d:FindFirstChild("Level") and d.Level.Value or 0
+end
+
+-- ================= FIGHTING STYLES =================
+local FightingStyles = {
+    ["Combat"] = true,
+    ["Dark Step"] = true,
+    ["Electric"] = true,
+    ["Water Kung Fu"] = true,
+    ["Dragon Breath"] = true,
+    ["Superhuman"] = true,
+    ["Godhuman"] = true,
+    ["Sharkman Karate"] = true,
+    ["Death Step"] = true,
+    ["Electric Claw"] = true
+}
+
+local function getFightingStyles()
+    local list = {}
+
+    local function scan(container)
+        for _, v in ipairs(container:GetChildren()) do
+            if v:IsA("Tool") and FightingStyles[v.Name] then
+                table.insert(list, v.Name)
+            end
+        end
+    end
+
+    scan(player.Backpack)
+    if player.Character then
+        scan(player.Character)
+    end
+
+    return #list > 0 and table.concat(list, ", ") or "None"
+end
+
+-- ================= FRUITS =================
+local function getEquippedFruit()
+    local d = player:FindFirstChild("Data")
+    local f = d and d:FindFirstChild("DevilFruit")
+    return f and f.Value or "None"
+end
+
+local function getFruitInventory()
+    local list = {}
+    for _, v in ipairs(player.Backpack:GetChildren()) do
+        if v:IsA("Tool") and string.find(v.Name, "Fruit") then
+            table.insert(list, v.Name)
+        end
+    end
+    return #list > 0 and table.concat(list, ", ") or "None"
+end
+
+-- ================= WEAPONS =================
+local function getWeapons()
+    local list = {}
+    for _, v in ipairs(player.Backpack:GetChildren()) do
+        if v:IsA("Tool") and not string.find(v.Name, "Fruit") then
+            table.insert(list, v.Name)
+        end
+    end
+    return #list > 0 and table.concat(list, ", ") or "None"
 end
 
 -- ================= WEBHOOK =================
 local function sendWebhook(reason)
     if not request then return end
+
+    local payload = {
+        embeds = {{
+            title = "🍌 Blox Fruits Full Status",
+            description = "**"..reason.."**",
+            color = 16705372,
+            fields = {
+                {
+                    name = "👤 Player",
+                    value = player.Name,
+                    inline = true
+                },
+                {
+                    name = "📊 Stats",
+                    value =
+                        "**Level:** "..formatNumber(getLevel())..
+                        "\n**Beli:** "..formatNumber(getBeli())..
+                        "\n**Bounty:** "..formatNumber(getBounty())..
+                        "\n**Fragments:** "..formatNumber(getFragments()),
+                    inline = false
+                },
+                {
+                    name = "🥋 Fighting Styles",
+                    value = getFightingStyles(),
+                    inline = false
+                },
+                {
+                    name = "🍏 Fruits",
+                    value =
+                        "**Equipped:** "..getEquippedFruit()..
+                        "\n**Inventory:** "..getFruitInventory(),
+                    inline = false
+                },
+                {
+                    name = "🗡 Weapons / Items",
+                    value = getWeapons(),
+                    inline = false
+                }
+            },
+            footer = { text = "Auto update every 5 minutes" },
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+
     pcall(function()
         request({
             Url = WEBHOOK_URL,
             Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = HttpService:JSONEncode({
-                embeds = {{
-                    title = "Blox Fruits Status",
-                    description = "**"..reason.."**",
-                    color = 3447003,
-                    fields = {
-                        { name = "Player", value = player.Name, inline = true },
-                        {
-                            name = "Stats",
-                            value =
-                                "**Level:** "..formatNumber(getLevel())..
-                                "\n**Beli:** "..formatNumber(getBeli())..
-                                "\n**Bounty:** "..formatNumber(getBounty())..
-                                "\n**Fragments:** "..formatNumber(getFragments()),
-                            inline = false
-                        }
-                    },
-                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-                }}
-            })
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(payload)
         })
     end)
 end
 
+-- ================= START =================
 task.delay(5, function()
     sendWebhook("SCRIPT STARTED")
 end)
@@ -124,70 +210,16 @@ end)
 
 -- ================= AUTO REJOIN =================
 pcall(function()
-    local promptGui = CoreGui:WaitForChild("RobloxPromptGui", 10)
-    if not promptGui then return end
-
-    local overlay = promptGui:WaitForChild("promptOverlay", 10)
-    if not overlay then return end
-
-    overlay.ChildAdded:Connect(function(child)
+    CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
         if child.Name == "ErrorPrompt" then
             sendWebhook("DISCONNECTED - REJOIN")
-            task.wait(2)
-            pcall(function() child:Destroy() end)
             task.wait(3)
             TeleportService:Teleport(PlaceId, player)
         end
     end)
 end)
 
--- ================= SERVER HOP =================
-local hopping = false
-
-local function getServers()
-    local servers, cursor = {}, ""
-    repeat
-        local url =
-            "https://games.roblox.com/v1/games/"..PlaceId..
-            "/servers/Public?sortOrder=Asc&limit=100"..
-            (cursor ~= "" and "&cursor="..cursor or "")
-
-        local ok, res = pcall(function()
-            return HttpService:JSONDecode(game:HttpGet(url))
-        end)
-        if not ok or not res then break end
-
-        for _, v in ipairs(res.data or {}) do
-            if v.id ~= JobId and v.playing < v.maxPlayers then
-                table.insert(servers, v.id)
-            end
-        end
-
-        cursor = res.nextPageCursor or ""
-    until cursor == ""
-
-    return servers
-end
-
-local function hopServer()
-    if hopping then return end
-    hopping = true
-
-    sendWebhook("SERVER HOP")
-
-    local servers = getServers()
-    if #servers > 0 then
-        TeleportService:TeleportToPlaceInstance(
-            PlaceId,
-            servers[math.random(#servers)],
-            player
-        )
-    else
-        TeleportService:Teleport(PlaceId, player)
-    end
-end
-
--- ================= HOP BUTTON =================
+-- ================= SERVER HOP BUTTON =================
 local hopBtn = Instance.new("TextButton", gui)
 hopBtn.Size = UDim2.new(0, 90, 0, 32)
 hopBtn.Position = UDim2.new(1, -100, 0, 10)
@@ -199,7 +231,10 @@ hopBtn.TextColor3 = Color3.new(1,1,1)
 hopBtn.BorderSizePixel = 0
 Instance.new("UICorner", hopBtn).CornerRadius = UDim.new(0, 8)
 
-hopBtn.MouseButton1Click:Connect(hopServer)
+hopBtn.MouseButton1Click:Connect(function()
+    sendWebhook("SERVER HOP")
+    TeleportService:Teleport(PlaceId, player)
+end)
 
 -- ================= FPS + UI UPDATE =================
 local frames, last, hue = 0, tick(), 0
@@ -229,4 +264,4 @@ RunService.Heartbeat:Connect(function()
     fragLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
 end)
 
-print("READY | FULL SCRIPT: FPS + STATS + WEBHOOK + AUTO REJOIN + SERVER HOP")
+print("READY | FULL BLOX FRUITS STATUS HUB")
