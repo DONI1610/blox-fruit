@@ -622,7 +622,7 @@ end)
 -- LOAD THƯ VIỆN UI (GIỐNG SCRIPT GỐC)
 -- =============================================
 
-local Library = (loadstring(game:HttpGet("https://pastefy.app/TvTv53s5/raw")))()
+local Library = (loadstring(game:HttpGet("https://pastefy.app/xE5UJ7wf/raw")))()
 
 -- =============================================
 -- TẠO WINDOW VÀ TAB
