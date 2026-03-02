@@ -1,18 +1,7 @@
 --[[
-    Blox Fruits PvP Hub - Professional PvP Script
-    Version: 1.0
-    Author: Your Script
-    Tính năng: 
-    - Aimbot (không aim đồng đội)
-    - Inf Soru
-    - Tự động kích hoạt V4
-    - ESP Players
-    - Anti Stun
-    - GUI Menu
-    - Visual Indicators
-    - Lưu cấu hình
-    - Reset mặc định
-    - Phím tắt
+    Blox Fruits PvP Hub - Mobile Friendly Version
+    Version: 2.0 (Mobile Optimized)
+    Tính năng: Aimbot, ESP, Auto V4, Inf Soru, Anti Stun + Nút menu trên màn hình
 ]]
 
 -- Khởi tạo Services
@@ -23,11 +12,14 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
+local StarterGui = game:GetService("StarterGui")
+local CoreGui = game:GetService("CoreGui")
 
 -- Biến cơ bản
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
+local IsMobile = UserInputService.TouchEnabled
 
 -- Kiểm tra game Blox Fruits
 local GameIds = {
@@ -49,7 +41,7 @@ end
 local DefaultConfig = {
     -- Aimbot
     AimbotEnabled = false,
-    AimbotMethod = "Closest", -- "Closest" hoặc "Selected"
+    AimbotMethod = "Closest",
     TargetPlayer = nil,
     AimbotDistance = 300,
     IgnoreTeam = true,
@@ -76,23 +68,22 @@ local DefaultConfig = {
     ShowPing = true,
     ShowTargetInfo = true,
     
-    -- Hotkeys
-    ToggleMenuKey = "F9",
-    PanicKey = "Delete",
-    AimbotHotkey = "F1",
-    ESPHotkey = "F2",
+    -- Mobile Settings
+    ShowMenuButton = true,
+    ButtonSize = 50,
+    ButtonPosition = "BottomRight", -- TopLeft, TopRight, BottomLeft, BottomRight
     
-    -- Màu sắc
+    -- Colors
     TeamColor = Color3.fromRGB(0, 255, 0),
     EnemyColor = Color3.fromRGB(255, 0, 0),
     TargetColor = Color3.fromRGB(255, 255, 0)
 }
 
--- Load cấu hình đã lưu (nếu có)
+-- Load/Save Config
 local Settings = {}
 local function LoadConfig()
     local success, data = pcall(function()
-        return readfile("BloxFruits_PvP_Settings.json")
+        return readfile("BloxFruits_PvP_Mobile.json")
     end)
     
     if success and data then
@@ -101,7 +92,6 @@ local function LoadConfig()
             Settings[k] = v
         end
     else
-        -- Nếu không có file, dùng cấu hình mặc định
         Settings = DefaultConfig
         SaveConfig()
     end
@@ -110,116 +100,100 @@ end
 local function SaveConfig()
     local success, data = pcall(function()
         local json = game:GetService("HttpService"):JSONEncode(Settings)
-        writefile("BloxFruits_PvP_Settings.json", json)
+        writefile("BloxFruits_PvP_Mobile.json", json)
     end)
 end
 
 local function ResetToDefault()
     Settings = DefaultConfig
     SaveConfig()
-    
-    -- Thông báo
-    if LocalPlayer.PlayerGui:FindFirstChild("Notification") then
-        LocalPlayer.PlayerGui.Notification:Destroy()
-    end
-    
-    local notif = Instance.new("ScreenGui")
-    notif.Name = "Notification"
-    notif.Parent = LocalPlayer.PlayerGui
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 50)
-    frame.Position = UDim2.new(0.5, -100, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderSizePixel = 0
-    frame.Parent = notif
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 5)
-    corner.Parent = frame
-    
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1, 0, 1, 0)
-    text.BackgroundTransparency = 1
-    text.Text = "✅ Đã reset về mặc định!"
-    text.TextColor3 = Color3.fromRGB(0, 255, 0)
-    text.TextScaled = true
-    text.Font = Enum.Font.GothamBold
-    text.Parent = frame
-    
-    game:GetService("TweenService"):Create(frame, TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 0, -50)}):Play()
-    wait(2)
-    notif:Destroy()
+    showNotification("✅ Đã reset về mặc định!", Color3.fromRGB(0, 255, 0))
 end
 
 LoadConfig()
+
+-- Hàm thông báo
+function showNotification(text, color)
+    spawn(function()
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "Notification"
+        gui.Parent = LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 250, 0, 50)
+        frame.Position = UDim2.new(0.5, -125, 0, 10)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        frame.BackgroundTransparency = 0.2
+        frame.BorderSizePixel = 0
+        frame.Parent = gui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = frame
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, -20, 1, 0)
+        textLabel.Position = UDim2.new(0, 10, 0, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = text
+        textLabel.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+        textLabel.TextScaled = true
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.Parent = frame
+        
+        TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -125, 0, 10)}):Play()
+        wait(2)
+        TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -125, 0, -60)}):Play()
+        wait(0.5)
+        gui:Destroy()
+    end)
+end
 
 -- =============================================
 -- BIẾN TOÀN CỤC
 -- =============================================
 
--- ESP Variables
 local ESPObjects = {}
-local ESPEnabled = Settings.ESPEnabled
-
--- Target cho aimbot
 local CurrentTarget = nil
-local TargetInfo = {
-    Name = "None",
-    Distance = 0,
-    Health = 0
-}
-
--- FPS Counter
-local FPS = 0
-local FPSTime = 0
-local FPSFrames = 0
-
--- Ping Counter
+local TargetInfo = {Name = "None", Distance = 0, Health = 0}
+local FPS = 0; local FPSTime = 0; local FPSFrames = 0
 local Ping = 0
-
--- Anti Stun
-local OldHealth = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character.Humanoid.Health or 0
+local MenuVisible = false
+local MenuButton = nil
+local Gui = nil
 
 -- =============================================
 -- HÀM HỖ TRỢ
 -- =============================================
 
--- Lấy nhân vật của người chơi
 local function GetCharacter(player)
     return player and player.Character
 end
 
--- Lấy HumanoidRootPart
 local function GetRoot(character)
     return character and character:FindFirstChild("HumanoidRootPart")
 end
 
--- Lấy Humanoid
 local function GetHumanoid(character)
-    return character and character:FindFirstChild("HumanoidOfClass", "Humanoid")
+    return character and character:FindFirstChildOfClass("Humanoid")
 end
 
--- Kiểm tra người chơi còn sống
 local function IsAlive(player)
     local character = GetCharacter(player)
     local humanoid = GetHumanoid(character)
     return character and humanoid and humanoid.Health > 0
 end
 
--- Kiểm tra có cùng team không
 local function IsSameTeam(player)
     return player and LocalPlayer.Team and player.Team == LocalPlayer.Team
 end
 
--- Lấy người chơi gần nhất
 local function GetClosestPlayer()
     local closest = nil
     local shortestDistance = Settings.AimbotDistance
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and IsAlive(player) then
-            -- Bỏ qua nếu cùng team và bật IgnoreTeam
             if Settings.IgnoreTeam and IsSameTeam(player) then
                 continue
             end
@@ -238,31 +212,13 @@ local function GetClosestPlayer()
     return closest
 end
 
--- Cập nhật thông tin target
-local function UpdateTargetInfo()
-    if CurrentTarget and IsAlive(CurrentTarget) then
-        local root = GetRoot(GetCharacter(CurrentTarget))
-        if root then
-            TargetInfo.Name = CurrentTarget.Name
-            TargetInfo.Distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude)
-            TargetInfo.Health = math.floor(GetHumanoid(GetCharacter(CurrentTarget)).Health)
-        end
-    else
-        CurrentTarget = nil
-        TargetInfo.Name = "None"
-        TargetInfo.Distance = 0
-        TargetInfo.Health = 0
-    end
-end
-
 -- =============================================
--- TÍNH NĂNG 1: AIMBOT
+-- TÍNH NĂNG AIMBOT
 -- =============================================
 
 local function UpdateAimbot()
     if not Settings.AimbotEnabled or not LocalPlayer.Character then return end
     
-    -- Cập nhật target
     if Settings.AimbotMethod == "Closest" then
         CurrentTarget = GetClosestPlayer()
     elseif Settings.AimbotMethod == "Selected" and Settings.TargetPlayer then
@@ -277,73 +233,34 @@ local function UpdateAimbot()
         end
     end
     
-    -- Aimbot camera và skills
     if CurrentTarget then
         local targetRoot = GetRoot(GetCharacter(CurrentTarget))
         if targetRoot then
-            -- Aimbot camera (xoay camera theo mục tiêu)
-            local cameraPos = Camera.CFrame.Position
-            local targetPos = targetRoot.Position
-            Camera.CFrame = CFrame.new(cameraPos, targetPos)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetRoot.Position)
             
-            -- Aimbot skills (tự động nhắm vào mục tiêu)
-            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                -- Hook vào remote để chỉnh hướng skill
-                local oldNamecall
-                oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                    local method = getnamecallmethod()
-                    local args = {...}
-                    
-                    if method == "FireServer" and tostring(self):find("Remote") then
-                        -- Nếu là skill cần aim
-                        if Settings.AimbotEnabled and CurrentTarget then
-                            -- Thay đổi vị trí mục tiêu thành vị trí của đối thủ
-                            if type(args[2]) == "Vector3" then
-                                args[2] = targetRoot.Position
-                                return oldNamecall(self, unpack(args))
-                            end
-                        end
-                    end
-                    
-                    return oldNamecall(self, ...)
-                end)
-            end
+            -- Update target info
+            TargetInfo.Name = CurrentTarget.Name
+            TargetInfo.Distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - targetRoot.Position).Magnitude)
+            TargetInfo.Health = math.floor(GetHumanoid(GetCharacter(CurrentTarget)).Health)
         end
+    else
+        TargetInfo.Name = "None"
+        TargetInfo.Distance = 0
+        TargetInfo.Health = 0
     end
 end
 
 -- =============================================
--- TÍNH NĂNG 2: INF SORU
+-- TÍNH NĂNG INF SORU
 -- =============================================
 
 local function SetupInfSoru()
-    if not Settings.InfSoruEnabled then return end
-    
-    -- Tìm và chỉnh sửa Soru script
-    local soruScript = LocalPlayer.Character:FindFirstChild("Soru")
-    if soruScript then
-        local connections = getconnections(soruScript.Changed)
-        for _, connection in ipairs(connections) do
-            connection:Disable()
-        end
-        
-        -- Tìm upvalue LastUse và set về 0 liên tục
-        for _, upvalue in ipairs(getupvalues(soruScript)) do
-            if type(upvalue) == "table" then
-                upvalue.LastUse = 0
-            end
-        end
-    end
-    
-    -- Tạo vòng lặp giữ Soru luôn sẵn sàng
     spawn(function()
         while Settings.InfSoruEnabled do
             task.wait(0.1)
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Soru") then
                 LocalPlayer.Character.Soru.Disabled = false
                 
-                -- Tìm và reset LastUse
                 for _, upvalue in ipairs(getupvalues(LocalPlayer.Character.Soru)) do
                     if type(upvalue) == "table" and upvalue.LastUse then
                         upvalue.LastUse = 0
@@ -355,17 +272,15 @@ local function SetupInfSoru()
 end
 
 -- =============================================
--- TÍNH NĂNG 3: AUTO V4
+-- TÍNH NĂNG AUTO V4
 -- =============================================
 
 local function CheckV4()
     if not Settings.AutoV4Enabled then return end
     if not LocalPlayer.Character then return end
     
-    -- Kiểm tra RaceEnergy
     local raceEnergy = LocalPlayer.Character:FindFirstChild("RaceEnergy")
     if raceEnergy and raceEnergy.Value == 1 then
-        -- Tự động kích hoạt V4
         VirtualInputManager:SendKeyEvent(true, Settings.V4Key, false, game)
         task.wait(0.1)
         VirtualInputManager:SendKeyEvent(false, Settings.V4Key, false, game)
@@ -373,7 +288,7 @@ local function CheckV4()
 end
 
 -- =============================================
--- TÍNH NĂNG 4: ESP
+-- TÍNH NĂNG ESP
 -- =============================================
 
 local function CreateESP(player)
@@ -382,19 +297,17 @@ local function CreateESP(player)
     local esp = {}
     ESPObjects[player] = esp
     
-    -- Tạo BillboardGui cho tên
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "PlayerESP"
     billboard.Adornee = GetCharacter(player)
-    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.Size = UDim2.new(0, IsMobile and 300 or 200, 0, IsMobile and 80 or 50)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.AlwaysOnTop = true
     billboard.Enabled = Settings.ESPEnabled
     
-    -- Tên người chơi
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "Name"
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
     nameLabel.Position = UDim2.new(0, 0, 0, 0)
     nameLabel.BackgroundTransparency = 1
     nameLabel.TextStrokeTransparency = 0.5
@@ -402,22 +315,20 @@ local function CreateESP(player)
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.Parent = billboard
     
-    -- Thông tin thêm (khoảng cách, máu)
     local infoLabel = Instance.new("TextLabel")
     infoLabel.Name = "Info"
-    infoLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    infoLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    infoLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    infoLabel.Position = UDim2.new(0, 0, 0.4, 0)
     infoLabel.BackgroundTransparency = 1
     infoLabel.TextStrokeTransparency = 0.5
     infoLabel.TextScaled = true
     infoLabel.Font = Enum.Font.GothamBold
     infoLabel.Parent = billboard
     
-    -- Health Bar
     local healthBar = Instance.new("Frame")
     healthBar.Name = "HealthBar"
     healthBar.Size = UDim2.new(1, 0, 0.05, 0)
-    healthBar.Position = UDim2.new(0, 0, 1, 0)
+    healthBar.Position = UDim2.new(0, 0, 0.8, 0)
     healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     healthBar.BorderSizePixel = 0
     healthBar.Parent = billboard
@@ -428,7 +339,6 @@ local function CreateESP(player)
     healthBarBg.BorderSizePixel = 0
     healthBarBg.Parent = healthBar
     
-    -- Box ESP
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "Box"
     box.Size = Vector3.new(4, 6, 4)
@@ -436,6 +346,7 @@ local function CreateESP(player)
     box.ZIndex = 10
     box.Adornee = GetCharacter(player)
     box.Visible = Settings.ESPEnabled
+    box.Transparency = 0.5
     
     billboard.Parent = Camera
     box.Parent = Camera
@@ -445,16 +356,6 @@ local function CreateESP(player)
     esp.InfoLabel = infoLabel
     esp.HealthBar = healthBar
     esp.Box = box
-    
-    -- Cập nhật màu sắc
-    local color = IsSameTeam(player) and Settings.TeamColor or Settings.EnemyColor
-    if player == CurrentTarget then
-        color = Settings.TargetColor
-    end
-    
-    nameLabel.TextColor3 = color
-    infoLabel.TextColor3 = color
-    box.Color3 = color
     
     return esp
 end
@@ -467,7 +368,6 @@ local function UpdateESP()
             local humanoid = GetHumanoid(character)
             
             if root and humanoid then
-                -- Cập nhật màu
                 local color = IsSameTeam(player) and Settings.TeamColor or Settings.EnemyColor
                 if player == CurrentTarget then
                     color = Settings.TargetColor
@@ -477,14 +377,8 @@ local function UpdateESP()
                 esp.InfoLabel.TextColor3 = color
                 esp.Box.Color3 = color
                 
-                -- Cập nhật tên
-                if Settings.ShowName then
-                    esp.NameLabel.Text = player.Name
-                else
-                    esp.NameLabel.Text = ""
-                end
+                esp.NameLabel.Text = Settings.ShowName and player.Name or ""
                 
-                -- Cập nhật khoảng cách và máu
                 local infoText = ""
                 if Settings.ShowDistance then
                     local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude)
@@ -492,26 +386,22 @@ local function UpdateESP()
                 end
                 if Settings.ShowHealth then
                     local healthPercent = math.floor((humanoid.Health / humanoid.MaxHealth) * 100)
-                    infoText = infoText .. " | " .. healthPercent .. "%"
+                    infoText = infoText .. (infoText ~= "" and " | " or "") .. healthPercent .. "%"
                 end
                 esp.InfoLabel.Text = infoText
                 
-                -- Cập nhật health bar
                 esp.HealthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
                 
-                -- Cập nhật vị trí
                 esp.Billboard.Adornee = character
                 esp.Box.Adornee = character
             end
         else
-            -- Xóa ESP nếu người chơi chết
             if esp.Billboard then esp.Billboard:Destroy() end
             if esp.Box then esp.Box:Destroy() end
             ESPObjects[player] = nil
         end
     end
     
-    -- Tạo ESP cho người chơi mới
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and IsAlive(player) and not ESPObjects[player] then
             CreateESP(player)
@@ -520,38 +410,27 @@ local function UpdateESP()
 end
 
 -- =============================================
--- TÍNH NĂNG 5: ANTI STUN
+-- TÍNH NĂNG ANTI STUN
 -- =============================================
 
 local function AntiStun()
     if not Settings.AntiStunEnabled then return end
     if not LocalPlayer.Character then return end
     
-    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if humanoid then
-        -- Kiểm tra nếu bị choáng (stun)
         if humanoid.PlatformStand or humanoid.Sit then
             humanoid.PlatformStand = false
             humanoid.Sit = false
-            
-            -- Reset animation
-            if humanoid:FindFirstChild("Animator") then
-                for _, track in ipairs(humanoid.Animator:GetPlayingAnimationTracks()) do
-                    track:Stop()
-                end
-            end
         end
         
-        -- Chống knockback bằng cách giữ nguyên vị trí
         local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            if not root:FindFirstChild("AntiStunBodyVelocity") then
-                local bv = Instance.new("BodyVelocity")
-                bv.Name = "AntiStunBodyVelocity"
-                bv.MaxForce = Vector3.new(1, 1, 1) * math.huge
-                bv.Velocity = Vector3.new(0, 0, 0)
-                bv.Parent = root
-            end
+        if root and not root:FindFirstChild("AntiStunBodyVelocity") then
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "AntiStunBodyVelocity"
+            bv.MaxForce = Vector3.new(1, 1, 1) * math.huge
+            bv.Velocity = Vector3.new(0, 0, 0)
+            bv.Parent = root
         end
     end
 end
@@ -563,13 +442,12 @@ end
 local function CreateVisualIndicators()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "PvPVisuals"
-    screenGui.Parent = LocalPlayer.PlayerGui
+    screenGui.Parent = LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
     
-    -- Frame chính
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 200, 0, 100)
-    mainFrame.Position = UDim2.new(0, 10, 0.5, -50)
+    mainFrame.Size = UDim2.new(0, IsMobile and 250 or 200, 0, IsMobile and 150 or 100)
+    mainFrame.Position = UDim2.new(0, 10, 0.5, IsMobile and -75 or -50)
     mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     mainFrame.BackgroundTransparency = 0.5
     mainFrame.BorderSizePixel = 0
@@ -579,71 +457,35 @@ local function CreateVisualIndicators()
     corner.CornerRadius = UDim.new(0, 5)
     corner.Parent = mainFrame
     
-    -- FPS Counter
-    local fpsLabel = Instance.new("TextLabel")
-    fpsLabel.Name = "FPS"
-    fpsLabel.Size = UDim2.new(1, -10, 0.25, 0)
-    fpsLabel.Position = UDim2.new(0, 5, 0, 5)
-    fpsLabel.BackgroundTransparency = 1
-    fpsLabel.Text = "FPS: 60"
-    fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    fpsLabel.Font = Enum.Font.GothamBold
-    fpsLabel.TextSize = 14
-    fpsLabel.Parent = mainFrame
+    local labels = {}
+    local texts = {"FPS: 60", "Ping: 50ms", "Target: None", "Distance: 0m"}
     
-    -- Ping Counter
-    local pingLabel = Instance.new("TextLabel")
-    pingLabel.Name = "Ping"
-    pingLabel.Size = UDim2.new(1, -10, 0.25, 0)
-    pingLabel.Position = UDim2.new(0, 5, 0.25, 0)
-    pingLabel.BackgroundTransparency = 1
-    pingLabel.Text = "Ping: 50ms"
-    pingLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    pingLabel.TextXAlignment = Enum.TextXAlignment.Left
-    pingLabel.Font = Enum.Font.GothamBold
-    pingLabel.TextSize = 14
-    pingLabel.Parent = mainFrame
-    
-    -- Target Info
-    local targetLabel = Instance.new("TextLabel")
-    targetLabel.Name = "Target"
-    targetLabel.Size = UDim2.new(1, -10, 0.25, 0)
-    targetLabel.Position = UDim2.new(0, 5, 0.5, 0)
-    targetLabel.BackgroundTransparency = 1
-    targetLabel.Text = "Target: None"
-    targetLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-    targetLabel.TextXAlignment = Enum.TextXAlignment.Left
-    targetLabel.Font = Enum.Font.GothamBold
-    targetLabel.TextSize = 14
-    targetLabel.Parent = mainFrame
-    
-    -- Target Distance
-    local distanceLabel = Instance.new("TextLabel")
-    distanceLabel.Name = "Distance"
-    distanceLabel.Size = UDim2.new(1, -10, 0.25, 0)
-    distanceLabel.Position = UDim2.new(0, 5, 0.75, 0)
-    distanceLabel.BackgroundTransparency = 1
-    distanceLabel.Text = "Distance: 0m"
-    distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-    distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
-    distanceLabel.Font = Enum.Font.GothamBold
-    distanceLabel.TextSize = 14
-    distanceLabel.Parent = mainFrame
+    for i, text in ipairs(texts) do
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -10, 0, 25)
+        label.Position = UDim2.new(0, 5, 0, (i-1) * 25)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = i <= 2 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = IsMobile and 16 or 14
+        label.Parent = mainFrame
+        labels[i] = label
+    end
     
     return {
         ScreenGui = screenGui,
         MainFrame = mainFrame,
-        FPS = fpsLabel,
-        Ping = pingLabel,
-        Target = targetLabel,
-        Distance = distanceLabel
+        FPS = labels[1],
+        Ping = labels[2],
+        Target = labels[3],
+        Distance = labels[4]
     }
 end
 
 local Visuals = CreateVisualIndicators()
 
--- Cập nhật visual indicators
 local function UpdateVisuals()
     if Settings.ShowFPS then
         FPSFrames = FPSFrames + 1
@@ -660,7 +502,10 @@ local function UpdateVisuals()
     end
     
     if Settings.ShowPing then
-        Ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        local stats = game:GetService("Stats")
+        if stats and stats.Network and stats.Network.ServerStatsItem then
+            Ping = math.floor(stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end
         Visuals.Ping.Text = "Ping: " .. Ping .. "ms"
         Visuals.Ping.Visible = true
     else
@@ -679,26 +524,123 @@ local function UpdateVisuals()
 end
 
 -- =============================================
--- GUI MENU
+-- NÚT MENU TRÊN MÀN HÌNH (MOBILE)
+-- =============================================
+
+local function CreateMenuButton()
+    local buttonGui = Instance.new("ScreenGui")
+    buttonGui.Name = "MenuButton"
+    buttonGui.Parent = LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
+    buttonGui.ResetOnSpawn = false
+    
+    local button = Instance.new("ImageButton")
+    button.Name = "MenuButton"
+    button.Size = UDim2.new(0, Settings.ButtonSize, 0, Settings.ButtonSize)
+    button.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
+    button.BackgroundTransparency = 0.2
+    button.Image = "rbxassetid://3926305904" -- Icon menu
+    button.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    button.Parent = buttonGui
+    
+    -- Vị trí nút
+    local pos = Settings.ButtonPosition
+    if pos == "TopLeft" then
+        button.Position = UDim2.new(0, 10, 0, 10)
+    elseif pos == "TopRight" then
+        button.Position = UDim2.new(1, -(Settings.ButtonSize + 10), 0, 10)
+    elseif pos == "BottomLeft" then
+        button.Position = UDim2.new(0, 10, 1, -(Settings.ButtonSize + 10))
+    elseif pos == "BottomRight" then
+        button.Position = UDim2.new(1, -(Settings.ButtonSize + 10), 1, -(Settings.ButtonSize + 10))
+    end
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, Settings.ButtonSize / 2)
+    corner.Parent = button
+    
+    -- Hiệu ứng glow
+    local glow = Instance.new("ImageLabel")
+    glow.Size = UDim2.new(1.5, 0, 1.5, 0)
+    glow.Position = UDim2.new(-0.25, 0, -0.25, 0)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxassetid://3570695787"
+    glow.ImageColor3 = Color3.fromRGB(65, 105, 225)
+    glow.ImageTransparency = 0.7
+    glow.Parent = button
+    
+    -- Animation khi nhấn
+    button.MouseButton1Click:Connect(function()
+        -- Hiệu ứng nhấn
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, Settings.ButtonSize * 0.8, 0, Settings.ButtonSize * 0.8)}):Play()
+        task.wait(0.1)
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, Settings.ButtonSize, 0, Settings.ButtonSize)}):Play()
+        
+        -- Toggle menu
+        MenuVisible = not MenuVisible
+        if Gui then
+            Gui.Enabled = MenuVisible
+        else
+            Gui = CreateGUI()
+            Gui.Enabled = MenuVisible
+        end
+        
+        showNotification(MenuVisible and "📱 Menu opened" or "📱 Menu closed", Color3.fromRGB(0, 255, 0))
+    end)
+    
+    -- Có thể kéo nút trên mobile
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+        end
+    end)
+    
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and dragging then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+            -- Lưu vị trí mới vào settings
+            Settings.ButtonPosition = "Custom"
+            SaveConfig()
+        end
+    end)
+    
+    return buttonGui, button
+end
+
+-- =============================================
+-- GUI MENU (TỐI ƯU CHO MOBILE)
 -- =============================================
 
 local function CreateGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "PvPHub"
-    screenGui.Parent = LocalPlayer.PlayerGui
+    screenGui.Parent = LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
+    screenGui.Enabled = MenuVisible
     
-    -- Main Frame
+    -- Main Frame - Lớn hơn cho mobile
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 400, 0, 500)
-    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+    mainFrame.Size = UDim2.new(0, IsMobile and 350 or 400, 0, IsMobile and 600 or 500)
+    mainFrame.Position = UDim2.new(0.5, IsMobile and -175 or -200, 0.5, IsMobile and -300 or -250)
     mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
-    mainFrame.Draggable = true
+    mainFrame.Draggable = not IsMobile -- Trên PC có thể kéo
     mainFrame.Parent = screenGui
     
-    -- Gradient Background
+    -- Gradient
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 45)),
@@ -706,14 +648,13 @@ local function CreateGUI()
     })
     gradient.Parent = mainFrame
     
-    -- Corner
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = mainFrame
     
     -- Title Bar
     local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.Size = UDim2.new(1, 0, 0, IsMobile and 60 or 40)
     titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
     titleBar.BorderSizePixel = 0
     titleBar.Parent = mainFrame
@@ -723,51 +664,52 @@ local function CreateGUI()
     titleCorner.Parent = titleBar
     
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -50, 1, 0)
+    title.Size = UDim2.new(1, -80, 1, 0)
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "BLOX FRUITS PvP HUB"
+    title.Text = "⚡ BLOX FRUITS PvP"
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.TextScaled = true
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = titleBar
     
-    -- Close Button
+    -- Close Button (lớn hơn cho mobile)
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.Size = UDim2.new(0, IsMobile and 50 or 30, 0, IsMobile and 50 or 30)
+    closeBtn.Position = UDim2.new(1, -(IsMobile and 60 or 40), 0, IsMobile and 5 or 5)
     closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    closeBtn.Text = "X"
+    closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.TextScaled = true
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.Parent = titleBar
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 5)
+    closeCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
     closeCorner.Parent = closeBtn
     
     closeBtn.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
+        MenuVisible = false
+        screenGui.Enabled = false
     end)
     
-    -- Tabs
+    -- Tabs (lớn hơn cho mobile)
     local tabFrame = Instance.new("Frame")
-    tabFrame.Size = UDim2.new(1, 0, 0, 40)
-    tabFrame.Position = UDim2.new(0, 0, 0, 40)
+    tabFrame.Size = UDim2.new(1, 0, 0, IsMobile and 60 or 40)
+    tabFrame.Position = UDim2.new(0, 0, 0, IsMobile and 60 or 40)
     tabFrame.BackgroundTransparency = 1
     tabFrame.Parent = mainFrame
     
-    local tabs = {"Combat", "ESP", "Movement", "Settings"}
-    local currentTab = "Combat"
+    local tabs = {"⚔️ Combat", "👁️ ESP", "⚙️ Settings"}
+    local currentTab = "⚔️ Combat"
     local tabButtons = {}
     
     for i, tabName in ipairs(tabs) do
         local btn = Instance.new("TextButton")
         btn.Name = tabName
-        btn.Size = UDim2.new(0.25, -5, 0, 30)
-        btn.Position = UDim2.new((i-1) * 0.25, 5, 0, 5)
+        btn.Size = UDim2.new(1/#tabs, -5, 0, IsMobile and 50 or 30)
+        btn.Position = UDim2.new((i-1)/#tabs, 5, 0, IsMobile and 5 or 5)
         btn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
         btn.Text = tabName
         btn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -776,7 +718,7 @@ local function CreateGUI()
         btn.Parent = tabFrame
         
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 5)
+        btnCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
         btnCorner.Parent = btn
         
         tabButtons[tabName] = btn
@@ -793,231 +735,142 @@ local function CreateGUI()
         end)
     end
     
-    -- Content Frame
+    -- Content Frame (có thể cuộn)
     local contentFrame = Instance.new("ScrollingFrame")
-    contentFrame.Size = UDim2.new(1, -20, 1, -100)
-    contentFrame.Position = UDim2.new(0, 10, 0, 90)
+    contentFrame.Size = UDim2.new(1, -20, 1, -(IsMobile and 160 or 120))
+    contentFrame.Position = UDim2.new(0, 10, 0, IsMobile and 130 or 90)
     contentFrame.BackgroundTransparency = 1
     contentFrame.BorderSizePixel = 0
-    contentFrame.ScrollBarThickness = 5
+    contentFrame.ScrollBarThickness = IsMobile and 8 or 5
     contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     contentFrame.Parent = mainFrame
     
     -- Function to update tab content
-    local function UpdateTabContent(tab)
-        -- Clear content
+    function UpdateTabContent(tab)
         for _, child in ipairs(contentFrame:GetChildren()) do
             child:Destroy()
         end
         
         local yPos = 0
         
-        if tab == "Combat" then
-            -- Aimbot Section
-            yPos = CreateSection(contentFrame, "Aimbot Settings", yPos)
+        if tab == "⚔️ Combat" then
+            yPos = CreateSection(contentFrame, "AIMBOT", yPos)
+            yPos = CreateToggle(contentFrame, "Bật Aimbot", Settings.AimbotEnabled, function(v) Settings.AimbotEnabled = v; SaveConfig() end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Enable Aimbot", Settings.AimbotEnabled, function(value)
-                Settings.AimbotEnabled = value
-                SaveConfig()
-            end, yPos)
+            local methods = {"Closest", "Selected"}
+            yPos = CreateDropdown(contentFrame, "Phương thức", methods, Settings.AimbotMethod, function(v) Settings.AimbotMethod = v; SaveConfig() end, yPos)
             
-            yPos = CreateDropdown(contentFrame, "Aimbot Method", {"Closest", "Selected"}, Settings.AimbotMethod, function(value)
-                Settings.AimbotMethod = value
-                SaveConfig()
-            end, yPos)
+            yPos = CreateSlider(contentFrame, "Khoảng cách", 50, 500, Settings.AimbotDistance, function(v) Settings.AimbotDistance = v; SaveConfig() end, yPos)
             
-            if Settings.AimbotMethod == "Selected" then
-                local players = {}
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer then
-                        table.insert(players, player.Name)
-                    end
-                end
-                
-                yPos = CreateDropdown(contentFrame, "Select Target", players, Settings.TargetPlayer and Settings.TargetPlayer.Name or nil, function(value)
-                    Settings.TargetPlayer = Players[value]
-                    SaveConfig()
-                end, yPos)
-            end
+            yPos = CreateToggle(contentFrame, "Bỏ qua đồng đội", Settings.IgnoreTeam, function(v) Settings.IgnoreTeam = v; SaveConfig() end, yPos)
             
-            yPos = CreateSlider(contentFrame, "Aimbot Distance", 50, 500, Settings.AimbotDistance, function(value)
-                Settings.AimbotDistance = value
-                SaveConfig()
-            end, yPos)
+            yPos = CreateSection(contentFrame, "DI CHUYỂN", yPos + 20)
+            yPos = CreateToggle(contentFrame, "Soru vô hạn", Settings.InfSoruEnabled, function(v) Settings.InfSoruEnabled = v; if v then SetupInfSoru() end; SaveConfig() end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Ignore Same Team", Settings.IgnoreTeam, function(value)
-                Settings.IgnoreTeam = value
-                SaveConfig()
-            end, yPos)
+            yPos = CreateToggle(contentFrame, "Tự động V4", Settings.AutoV4Enabled, function(v) Settings.AutoV4Enabled = v; SaveConfig() end, yPos)
             
-            -- Soru Section
-            yPos = CreateSection(contentFrame, "Movement", yPos + 10)
+            yPos = CreateSection(contentFrame, "PHÒNG THỦ", yPos + 20)
+            yPos = CreateToggle(contentFrame, "Chống choáng", Settings.AntiStunEnabled, function(v) Settings.AntiStunEnabled = v; SaveConfig() end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Infinite Soru", Settings.InfSoruEnabled, function(value)
-                Settings.InfSoruEnabled = value
-                if value then SetupInfSoru() end
-                SaveConfig()
-            end, yPos)
-            
-            -- V4 Section
-            yPos = CreateToggle(contentFrame, "Auto V4", Settings.AutoV4Enabled, function(value)
-                Settings.AutoV4Enabled = value
-                SaveConfig()
-            end, yPos)
-            
-            if Settings.AutoV4Enabled then
-                yPos = CreateInput(contentFrame, "V4 Key", Settings.V4Key, function(value)
-                    Settings.V4Key = value
-                    SaveConfig()
-                end, yPos)
-            end
-            
-            -- Anti Stun
-            yPos = CreateSection(contentFrame, "Defense", yPos + 10)
-            
-            yPos = CreateToggle(contentFrame, "Anti Stun", Settings.AntiStunEnabled, function(value)
-                Settings.AntiStunEnabled = value
-                SaveConfig()
-            end, yPos)
-            
-        elseif tab == "ESP" then
-            yPos = CreateSection(contentFrame, "ESP Settings", yPos)
-            
-            yPos = CreateToggle(contentFrame, "Enable ESP", Settings.ESPEnabled, function(value)
-                Settings.ESPEnabled = value
+        elseif tab == "👁️ ESP" then
+            yPos = CreateSection(contentFrame, "CÀI ĐẶT ESP", yPos)
+            yPos = CreateToggle(contentFrame, "Bật ESP", Settings.ESPEnabled, function(v) 
+                Settings.ESPEnabled = v
                 for _, esp in pairs(ESPObjects) do
-                    if esp.Billboard then
-                        esp.Billboard.Enabled = value
-                    end
-                    if esp.Box then
-                        esp.Box.Visible = value
-                    end
+                    if esp.Billboard then esp.Billboard.Enabled = v end
+                    if esp.Box then esp.Box.Visible = v end
                 end
                 SaveConfig()
             end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Show Name", Settings.ShowName, function(value)
-                Settings.ShowName = value
+            yPos = CreateToggle(contentFrame, "Hiển thị tên", Settings.ShowName, function(v) Settings.ShowName = v; SaveConfig() end, yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị khoảng cách", Settings.ShowDistance, function(v) Settings.ShowDistance = v; SaveConfig() end, yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị máu", Settings.ShowHealth, function(v) Settings.ShowHealth = v; SaveConfig() end, yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị khung", Settings.ShowBox, function(v) Settings.ShowBox = v; SaveConfig() end, yPos)
+            
+            yPos = CreateSection(contentFrame, "MÀU SẮC", yPos + 20)
+            yPos = CreateColorButton(contentFrame, "Màu đồng đội", Settings.TeamColor, function(v) Settings.TeamColor = v; SaveConfig() end, yPos)
+            yPos = CreateColorButton(contentFrame, "Màu kẻ địch", Settings.EnemyColor, function(v) Settings.EnemyColor = v; SaveConfig() end, yPos)
+            yPos = CreateColorButton(contentFrame, "Màu mục tiêu", Settings.TargetColor, function(v) Settings.TargetColor = v; SaveConfig() end, yPos)
+            
+        elseif tab == "⚙️ Settings" then
+            yPos = CreateSection(contentFrame, "HIỂN THỊ", yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị FPS", Settings.ShowFPS, function(v) Settings.ShowFPS = v; SaveConfig() end, yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị Ping", Settings.ShowPing, function(v) Settings.ShowPing = v; SaveConfig() end, yPos)
+            yPos = CreateToggle(contentFrame, "Hiển thị mục tiêu", Settings.ShowTargetInfo, function(v) Settings.ShowTargetInfo = v; SaveConfig() end, yPos)
+            
+            yPos = CreateSection(contentFrame, "NÚT MENU", yPos + 20)
+            yPos = CreateToggle(contentFrame, "Hiển thị nút menu", Settings.ShowMenuButton, function(v) 
+                Settings.ShowMenuButton = v
+                if MenuButton then
+                    MenuButton.Parent.Enabled = v
+                end
                 SaveConfig()
             end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Show Distance", Settings.ShowDistance, function(value)
-                Settings.ShowDistance = value
+            local positions = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
+            yPos = CreateDropdown(contentFrame, "Vị trí nút", positions, Settings.ButtonPosition, function(v) 
+                Settings.ButtonPosition = v
+                SaveConfig()
+                -- Cập nhật vị trí nút
+                if MenuButton then
+                    local btn = MenuButton.Parent.MenuButton
+                    if v == "TopLeft" then
+                        btn.Position = UDim2.new(0, 10, 0, 10)
+                    elseif v == "TopRight" then
+                        btn.Position = UDim2.new(1, -(Settings.ButtonSize + 10), 0, 10)
+                    elseif v == "BottomLeft" then
+                        btn.Position = UDim2.new(0, 10, 1, -(Settings.ButtonSize + 10))
+                    elseif v == "BottomRight" then
+                        btn.Position = UDim2.new(1, -(Settings.ButtonSize + 10), 1, -(Settings.ButtonSize + 10))
+                    end
+                end
+            end, yPos)
+            
+            yPos = CreateSlider(contentFrame, "Kích thước nút", 40, 80, Settings.ButtonSize, function(v)
+                Settings.ButtonSize = v
+                if MenuButton then
+                    MenuButton.Parent.MenuButton.Size = UDim2.new(0, v, 0, v)
+                end
                 SaveConfig()
             end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Show Health", Settings.ShowHealth, function(value)
-                Settings.ShowHealth = value
+            yPos = CreateSection(contentFrame, "CẤU HÌNH", yPos + 20)
+            yPos = CreateButton(contentFrame, "💾 Lưu cấu hình", function()
                 SaveConfig()
+                showNotification("✅ Đã lưu cấu hình!", Color3.fromRGB(0, 255, 0))
             end, yPos)
             
-            yPos = CreateToggle(contentFrame, "Show Box", Settings.ShowBox, function(value)
-                Settings.ShowBox = value
-                SaveConfig()
-            end, yPos)
-            
-            -- Color Settings
-            yPos = CreateSection(contentFrame, "Colors", yPos + 10)
-            
-            yPos = CreateColorPicker(contentFrame, "Team Color", Settings.TeamColor, function(value)
-                Settings.TeamColor = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateColorPicker(contentFrame, "Enemy Color", Settings.EnemyColor, function(value)
-                Settings.EnemyColor = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateColorPicker(contentFrame, "Target Color", Settings.TargetColor, function(value)
-                Settings.TargetColor = value
-                SaveConfig()
-            end, yPos)
-            
-        elseif tab == "Movement" then
-            
-        elseif tab == "Settings" then
-            yPos = CreateSection(contentFrame, "Visual Indicators", yPos)
-            
-            yPos = CreateToggle(contentFrame, "Show FPS", Settings.ShowFPS, function(value)
-                Settings.ShowFPS = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateToggle(contentFrame, "Show Ping", Settings.ShowPing, function(value)
-                Settings.ShowPing = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateToggle(contentFrame, "Show Target Info", Settings.ShowTargetInfo, function(value)
-                Settings.ShowTargetInfo = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateSection(contentFrame, "Hotkeys", yPos + 10)
-            
-            yPos = CreateInput(contentFrame, "Toggle Menu Key", Settings.ToggleMenuKey, function(value)
-                Settings.ToggleMenuKey = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateInput(contentFrame, "Panic Key", Settings.PanicKey, function(value)
-                Settings.PanicKey = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateInput(contentFrame, "Aimbot Toggle Key", Settings.AimbotHotkey, function(value)
-                Settings.AimbotHotkey = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateInput(contentFrame, "ESP Toggle Key", Settings.ESPHotkey, function(value)
-                Settings.ESPHotkey = value
-                SaveConfig()
-            end, yPos)
-            
-            yPos = CreateSection(contentFrame, "Configuration", yPos + 10)
-            
-            yPos = CreateButton(contentFrame, "Save Settings", function()
-                SaveConfig()
-                -- Thông báo
-                local notif = Instance.new("Message")
-                notif.Text = "✅ Settings saved!"
-                notif.Parent = LocalPlayer.PlayerGui
-                task.wait(2)
-                notif:Destroy()
-            end, yPos)
-            
-            yPos = CreateButton(contentFrame, "Reset to Default", function()
+            yPos = CreateButton(contentFrame, "🔄 Reset mặc định", function()
                 ResetToDefault()
+                showNotification("✅ Đã reset mặc định!", Color3.fromRGB(255, 255, 0))
                 -- Refresh GUI
                 screenGui:Destroy()
-                CreateGUI()
+                Gui = CreateGUI()
             end, yPos)
         end
         
-        contentFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 20)
+        contentFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 40)
     end
     
-    -- Helper functions for GUI elements
+    -- Helper functions cho GUI (tối ưu mobile)
     function CreateSection(parent, text, y)
         local section = Instance.new("TextLabel")
-        section.Size = UDim2.new(1, -10, 0, 25)
+        section.Size = UDim2.new(1, -10, 0, IsMobile and 40 or 25)
         section.Position = UDim2.new(0, 5, 0, y)
         section.BackgroundTransparency = 1
         section.Text = text
         section.TextColor3 = Color3.fromRGB(100, 150, 255)
         section.TextXAlignment = Enum.TextXAlignment.Left
         section.Font = Enum.Font.GothamBold
-        section.TextSize = 16
+        section.TextSize = IsMobile and 18 or 16
         section.Parent = parent
-        
-        return y + 30
+        return y + (IsMobile and 45 or 30)
     end
     
     function CreateToggle(parent, text, default, callback, y)
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 30)
+        frame.Size = UDim2.new(1, -10, 0, IsMobile and 50 or 30)
         frame.Position = UDim2.new(0, 5, 0, y)
         frame.BackgroundTransparency = 1
         frame.Parent = parent
@@ -1029,21 +882,21 @@ local function CreateGUI()
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Font = Enum.Font.Gotham
-        label.TextSize = 14
+        label.TextSize = IsMobile and 16 or 14
         label.Parent = frame
         
         local toggle = Instance.new("TextButton")
-        toggle.Size = UDim2.new(0, 40, 0, 20)
-        toggle.Position = UDim2.new(1, -45, 0.5, -10)
+        toggle.Size = UDim2.new(0, IsMobile and 70 or 40, 0, IsMobile and 40 or 20)
+        toggle.Position = UDim2.new(1, -(IsMobile and 80 or 45), 0.5, -(IsMobile and 20 or 10))
         toggle.BackgroundColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
         toggle.Text = default and "ON" or "OFF"
         toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        toggle.TextSize = 12
+        toggle.TextSize = IsMobile and 16 or 12
         toggle.Font = Enum.Font.GothamBold
         toggle.Parent = frame
         
         local toggleCorner = Instance.new("UICorner")
-        toggleCorner.CornerRadius = UDim.new(0, 5)
+        toggleCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
         toggleCorner.Parent = toggle
         
         local state = default
@@ -1055,38 +908,123 @@ local function CreateGUI()
             callback(state)
         end)
         
-        return y + 35
+        return y + (IsMobile and 55 or 35)
     end
     
-    function CreateDropdown(parent, text, options, default, callback, y)
+    function CreateSlider(parent, text, min, max, default, callback, y)
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 50)
+        frame.Size = UDim2.new(1, -10, 0, IsMobile and 70 or 50)
         frame.Position = UDim2.new(0, 5, 0, y)
         frame.BackgroundTransparency = 1
         frame.Parent = parent
         
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 20)
+        label.Size = UDim2.new(0.7, -5, 0, IsMobile and 25 or 20)
         label.BackgroundTransparency = 1
         label.Text = text
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Font = Enum.Font.Gotham
-        label.TextSize = 14
+        label.TextSize = IsMobile and 16 or 14
+        label.Parent = frame
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Size = UDim2.new(0.3, -5, 0, IsMobile and 25 or 20)
+        valueLabel.Position = UDim2.new(0.7, 0, 0, 0)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Text = tostring(default)
+        valueLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.TextSize = IsMobile and 16 or 14
+        valueLabel.Parent = frame
+        
+        local sliderBg = Instance.new("Frame")
+        sliderBg.Size = UDim2.new(1, 0, 0, IsMobile and 20 or 10)
+        sliderBg.Position = UDim2.new(0, 0, 0, IsMobile and 30 or 25)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        sliderBg.Parent = frame
+        
+        local sliderBgCorner = Instance.new("UICorner")
+        sliderBgCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
+        sliderBgCorner.Parent = sliderBg
+        
+        local slider = Instance.new("Frame")
+        slider.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+        slider.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
+        slider.Parent = sliderBg
+        
+        local sliderCorner = Instance.new("UICorner")
+        sliderCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
+        sliderCorner.Parent = slider
+        
+        local dragButton = Instance.new("TextButton")
+        dragButton.Size = UDim2.new(1, 0, 1, 0)
+        dragButton.BackgroundTransparency = 1
+        dragButton.Text = ""
+        dragButton.Parent = sliderBg
+        
+        local value = default
+        local dragging = false
+        
+        dragButton.MouseButton1Down:Connect(function()
+            dragging = true
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        
+        dragButton.MouseMoved:Connect(function()
+            if dragging then
+                local mousePos = UserInputService:GetMouseLocation()
+                local absPos = sliderBg.AbsolutePosition
+                local sizeX = sliderBg.AbsoluteSize.X
+                local relativeX = math.clamp(mousePos.X - absPos.X, 0, sizeX)
+                local percent = relativeX / sizeX
+                value = math.floor(min + (max - min) * percent)
+                value = math.clamp(value, min, max)
+                
+                slider.Size = UDim2.new(percent, 0, 1, 0)
+                valueLabel.Text = tostring(value)
+                callback(value)
+            end
+        end)
+        
+        return y + (IsMobile and 75 or 55)
+    end
+    
+    function CreateDropdown(parent, text, options, default, callback, y)
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, -10, 0, IsMobile and 80 or 50)
+        frame.Position = UDim2.new(0, 5, 0, y)
+        frame.BackgroundTransparency = 1
+        frame.Parent = parent
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, IsMobile and 25 or 20)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.TextSize = IsMobile and 16 or 14
         label.Parent = frame
         
         local dropdown = Instance.new("TextButton")
-        dropdown.Size = UDim2.new(1, 0, 0, 25)
-        dropdown.Position = UDim2.new(0, 0, 0, 20)
+        dropdown.Size = UDim2.new(1, 0, 0, IsMobile and 45 or 25)
+        dropdown.Position = UDim2.new(0, 0, 0, IsMobile and 30 or 20)
         dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
         dropdown.Text = default or options[1]
         dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dropdown.TextSize = 14
+        dropdown.TextSize = IsMobile and 16 or 14
         dropdown.Font = Enum.Font.Gotham
         dropdown.Parent = frame
         
         local dropdownCorner = Instance.new("UICorner")
-        dropdownCorner.CornerRadius = UDim.new(0, 5)
+        dropdownCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
         dropdownCorner.Parent = dropdown
         
         local isOpen = false
@@ -1097,24 +1035,24 @@ local function CreateGUI()
             
             if isOpen then
                 dropdownList = Instance.new("Frame")
-                dropdownList.Size = UDim2.new(1, 0, 0, #options * 25)
+                dropdownList.Size = UDim2.new(1, 0, 0, #options * (IsMobile and 50 or 25))
                 dropdownList.Position = UDim2.new(0, 0, 1, 0)
                 dropdownList.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
                 dropdownList.BorderSizePixel = 0
                 dropdownList.Parent = dropdown
                 
                 local listCorner = Instance.new("UICorner")
-                listCorner.CornerRadius = UDim.new(0, 5)
+                listCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
                 listCorner.Parent = dropdownList
                 
                 for i, option in ipairs(options) do
                     local optionBtn = Instance.new("TextButton")
-                    optionBtn.Size = UDim2.new(1, 0, 0, 25)
-                    optionBtn.Position = UDim2.new(0, 0, 0, (i-1) * 25)
+                    optionBtn.Size = UDim2.new(1, 0, 0, IsMobile and 50 or 25)
+                    optionBtn.Position = UDim2.new(0, 0, 0, (i-1) * (IsMobile and 50 or 25))
                     optionBtn.BackgroundTransparency = 1
                     optionBtn.Text = option
                     optionBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-                    optionBtn.TextSize = 14
+                    optionBtn.TextSize = IsMobile and 16 or 14
                     optionBtn.Font = Enum.Font.Gotham
                     optionBtn.Parent = dropdownList
                     
@@ -1140,140 +1078,12 @@ local function CreateGUI()
             end
         end)
         
-        return y + 55
+        return y + (IsMobile and 85 or 55)
     end
     
-    function CreateSlider(parent, text, min, max, default, callback, y)
+    function CreateColorButton(parent, text, default, callback, y)
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 50)
-        frame.Position = UDim2.new(0, 5, 0, y)
-        frame.BackgroundTransparency = 1
-        frame.Parent = parent
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.7, -5, 0, 20)
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 14
-        label.Parent = frame
-        
-        local valueLabel = Instance.new("TextLabel")
-        valueLabel.Size = UDim2.new(0.3, -5, 0, 20)
-        valueLabel.Position = UDim2.new(0.7, 0, 0, 0)
-        valueLabel.BackgroundTransparency = 1
-        valueLabel.Text = tostring(default)
-        valueLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-        valueLabel.Font = Enum.Font.GothamBold
-        valueLabel.TextSize = 14
-        valueLabel.Parent = frame
-        
-        local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(1, 0, 0, 10)
-        sliderBg.Position = UDim2.new(0, 0, 0, 25)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-        sliderBg.Parent = frame
-        
-        local sliderBgCorner = Instance.new("UICorner")
-        sliderBgCorner.CornerRadius = UDim.new(0, 5)
-        sliderBgCorner.Parent = sliderBg
-        
-        local slider = Instance.new("Frame")
-        slider.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-        slider.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
-        slider.Parent = sliderBg
-        
-        local sliderCorner = Instance.new("UICorner")
-        sliderCorner.CornerRadius = UDim.new(0, 5)
-        sliderCorner.Parent = slider
-        
-        local dragButton = Instance.new("TextButton")
-        dragButton.Size = UDim2.new(1, 0, 1, 0)
-        dragButton.BackgroundTransparency = 1
-        dragButton.Text = ""
-        dragButton.Parent = sliderBg
-        
-        local value = default
-        local dragging = false
-        
-        dragButton.MouseButton1Down:Connect(function()
-            dragging = true
-        end)
-        
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = false
-            end
-        end)
-        
-        dragButton.MouseButton1Up:Connect(function()
-            dragging = false
-        end)
-        
-        dragButton.MouseMoved:Connect(function()
-            if dragging then
-                local mousePos = UserInputService:GetMouseLocation()
-                local absPos = sliderBg.AbsolutePosition
-                local sizeX = sliderBg.AbsoluteSize.X
-                local relativeX = math.clamp(mousePos.X - absPos.X, 0, sizeX)
-                local percent = relativeX / sizeX
-                value = math.floor(min + (max - min) * percent)
-                value = math.clamp(value, min, max)
-                
-                slider.Size = UDim2.new(percent, 0, 1, 0)
-                valueLabel.Text = tostring(value)
-                callback(value)
-            end
-        end)
-        
-        return y + 55
-    end
-    
-    function CreateInput(parent, text, default, callback, y)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 50)
-        frame.Position = UDim2.new(0, 5, 0, y)
-        frame.BackgroundTransparency = 1
-        frame.Parent = parent
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 14
-        label.Parent = frame
-        
-        local input = Instance.new("TextBox")
-        input.Size = UDim2.new(1, 0, 0, 25)
-        input.Position = UDim2.new(0, 0, 0, 20)
-        input.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-        input.Text = default
-        input.TextColor3 = Color3.fromRGB(255, 255, 255)
-        input.TextSize = 14
-        input.Font = Enum.Font.Gotham
-        input.PlaceholderText = "Enter key..."
-        input.Parent = frame
-        
-        local inputCorner = Instance.new("UICorner")
-        inputCorner.CornerRadius = UDim.new(0, 5)
-        inputCorner.Parent = input
-        
-        input.FocusLost:Connect(function()
-            callback(input.Text)
-        end)
-        
-        return y + 55
-    end
-    
-    function CreateColorPicker(parent, text, default, callback, y)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 40)
+        frame.Size = UDim2.new(1, -10, 0, IsMobile and 60 or 40)
         frame.Position = UDim2.new(0, 5, 0, y)
         frame.BackgroundTransparency = 1
         frame.Parent = parent
@@ -1285,23 +1095,22 @@ local function CreateGUI()
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Font = Enum.Font.Gotham
-        label.TextSize = 14
+        label.TextSize = IsMobile and 16 or 14
         label.Parent = frame
         
         local colorBtn = Instance.new("Frame")
-        colorBtn.Size = UDim2.new(0, 30, 0, 30)
-        colorBtn.Position = UDim2.new(1, -35, 0.5, -15)
+        colorBtn.Size = UDim2.new(0, IsMobile and 50 or 30, 0, IsMobile and 50 or 30)
+        colorBtn.Position = UDim2.new(1, -(IsMobile and 60 or 35), 0.5, -(IsMobile and 25 or 15))
         colorBtn.BackgroundColor3 = default
         colorBtn.Parent = frame
         
         local colorCorner = Instance.new("UICorner")
-        colorCorner.CornerRadius = UDim.new(0, 5)
+        colorCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
         colorCorner.Parent = colorBtn
         
-        -- Color picker dialog đơn giản
         colorBtn.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                -- Tạo color picker đơn giản (có thể mở rộng sau)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                -- Tạo color picker đơn giản
                 local r = math.random(0, 255)
                 local g = math.random(0, 255)
                 local b = math.random(0, 255)
@@ -1311,96 +1120,48 @@ local function CreateGUI()
             end
         end)
         
-        return y + 45
+        return y + (IsMobile and 65 or 45)
     end
     
     function CreateButton(parent, text, callback, y)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -10, 0, 35)
+        btn.Size = UDim2.new(1, -10, 0, IsMobile and 60 or 35)
         btn.Position = UDim2.new(0, 5, 0, y)
         btn.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
         btn.Text = text
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 14
+        btn.TextSize = IsMobile and 18 or 14
         btn.Font = Enum.Font.GothamBold
         btn.Parent = parent
         
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 5)
+        btnCorner.CornerRadius = UDim.new(0, IsMobile and 10 or 5)
         btnCorner.Parent = btn
         
         btn.MouseButton1Click:Connect(callback)
         
-        btn.MouseEnter:Connect(function()
-            btn.BackgroundColor3 = Color3.fromRGB(85, 125, 245)
-        end)
-        
-        btn.MouseLeave:Connect(function()
-            btn.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
-        end)
-        
-        return y + 40
+        return y + (IsMobile and 65 or 40)
     end
     
     -- Initialize first tab
-    UpdateTabContent("Combat")
+    UpdateTabContent("⚔️ Combat")
     
     return screenGui
 end
 
 -- =============================================
--- PHÍM TẮT
+-- KHỞI TẠO
 -- =============================================
 
-local MenuVisible = true
-local Gui = CreateGUI()
+-- Tạo nút menu
+if Settings.ShowMenuButton then
+    local buttonGui, button = CreateMenuButton()
+    MenuButton = button
+end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    -- Toggle Menu
-    if input.KeyCode == Enum.KeyCode[Settings.ToggleMenuKey] then
-        MenuVisible = not MenuVisible
-        Gui.Enabled = MenuVisible
-    end
-    
-    -- Panic Mode (tắt tất cả)
-    if input.KeyCode == Enum.KeyCode[Settings.PanicKey] then
-        Settings.AimbotEnabled = false
-        Settings.InfSoruEnabled = false
-        Settings.AutoV4Enabled = false
-        Settings.ESPEnabled = false
-        Settings.AntiStunEnabled = false
-        SaveConfig()
-        
-        -- Thông báo
-        local notif = Instance.new("Message")
-        notif.Text = "⚠️ PANIC MODE - All features disabled!"
-        notif.Parent = LocalPlayer.PlayerGui
-        task.wait(2)
-        notif:Destroy()
-    end
-    
-    -- Toggle Aimbot
-    if input.KeyCode == Enum.KeyCode[Settings.AimbotHotkey] then
-        Settings.AimbotEnabled = not Settings.AimbotEnabled
-        SaveConfig()
-    end
-    
-    -- Toggle ESP
-    if input.KeyCode == Enum.KeyCode[Settings.ESPHotkey] then
-        Settings.ESPEnabled = not Settings.ESPEnabled
-        for _, esp in pairs(ESPObjects) do
-            if esp.Billboard then
-                esp.Billboard.Enabled = Settings.ESPEnabled
-            end
-            if esp.Box then
-                esp.Box.Visible = Settings.ESPEnabled
-            end
-        end
-        SaveConfig()
-    end
-end)
+-- Tạo GUI menu (ẩn ban đầu)
+Gui = CreateGUI()
+Gui.Enabled = false
 
 -- =============================================
 -- MAIN LOOP
@@ -1408,29 +1169,27 @@ end)
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        -- Cập nhật aimbot
         UpdateAimbot()
-        
-        -- Cập nhật thông tin target
-        UpdateTargetInfo()
-        
-        -- Kiểm tra V4
         CheckV4()
-        
-        -- Anti stun
         AntiStun()
         
-        -- Cập nhật ESP
         if Settings.ESPEnabled then
             UpdateESP()
         end
         
-        -- Cập nhật visual indicators
         UpdateVisuals()
+        
+        -- Cập nhật Inf Soru
+        if Settings.InfSoruEnabled then
+            SetupInfSoru()
+        end
     end)
 end)
 
--- Xóa ESP khi script dừng
+-- =============================================
+-- DỌN DẸP KHI THOÁT
+-- =============================================
+
 LocalPlayer.OnTeleport:Connect(function()
     for _, esp in pairs(ESPObjects) do
         if esp.Billboard then esp.Billboard:Destroy() end
@@ -1438,6 +1197,6 @@ LocalPlayer.OnTeleport:Connect(function()
     end
 end)
 
-print("✅ Blox Fruits PvP Hub loaded successfully!")
-print("📌 Press " .. Settings.ToggleMenuKey .. " to toggle menu")
-print("📌 Press " .. Settings.PanicKey .. " for panic mode")
+print("✅ Blox Fruits PvP Hub - Mobile Ready!")
+print("📱 Nhấn nút menu trên màn hình để mở")
+print("⚡ Đã tối ưu cho điện thoại!")
