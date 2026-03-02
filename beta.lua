@@ -1,6 +1,6 @@
 --[[
     Blox Fruits PvP Only Script
-    Based on doni.lua - Only Combat PVP Tab Retained
+    Based on doni.lua - GIỮ NGUYÊN CƠ CHẾ AIMBOT GỐC
 ]]
 
 -- Khởi tạo Services
@@ -15,15 +15,20 @@ local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 local Stats = game:GetService("Stats")
 
--- Biến cơ bản
+-- Biến cơ bản (GIỐNG SCRIPT GỐC)
 local ply = Players
 local plr = ply.LocalPlayer
 local Root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 local replicated = ReplicatedStorage
-local TeamSelf = plr.Team
 local vim1 = VirtualInputManager
 local vim2 = VirtualUser
+local TeamSelf = plr.Team
+local RunSer = RunService
+local Stats = Stats
+local Energy = plr.Character and plr.Character:FindFirstChild("Energy") and plr.Character.Energy.Value or 100
 local Sec = 0.1
+local MousePos = Vector3.new(0, 0, 0)
+local ABmethod = "Auto Aimbots"
 
 -- Kiểm tra game
 if game.PlaceId == 2753915549 or game.PlaceId == 85211729168715 then
@@ -34,19 +39,17 @@ elseif game.PlaceId == 7449423635 or game.PlaceId == 100117331123089 then
     World3 = true
 end
 
--- Chờ game load
+-- Chờ game load (GIỐNG SCRIPT GỐC)
 repeat
     wait()
 until plr.PlayerGui:FindFirstChild("Main") and plr.PlayerGui.Main:FindFirstChild("Loading") and game:IsLoaded()
 
 -- =============================================
--- HÀM INFINITY ABILITY (TỪ SCRIPT GỐC)
+-- HÀM INFINITY_ABILITY (GIỐNG SCRIPT GỐC 100%)
 -- =============================================
 
-local Energy = plr.Character and plr.Character:FindFirstChild("Energy") and plr.Character.Energy.Value or 100
-
 getInfinity_Ability = function(ability, enabled)
-    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+    if not Root then
         return
     end
     
@@ -82,10 +85,9 @@ getInfinity_Ability = function(ability, enabled)
 end
 
 -- =============================================
--- HÀM AIMBOT (TỪ SCRIPT GỐC)
+-- HOOK REMOTE AIMBOT (GIỐNG SCRIPT GỐC 100%)
 -- =============================================
 
--- Hook Remote cho aimbot
 local J = getrawmetatable(game)
 local i = J.__namecall
 setreadonly(J, false)
@@ -108,11 +110,27 @@ J.__namecall = newcclosure(function(...)
 end)
 
 -- =============================================
--- BIẾN TOÀN CỤC CHO PVP
+-- GET CONNECTION ENEMIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
-local MousePos = Vector3.new(0, 0, 0)
-local ABmethod = "Auto Aimbots"
+GetConnectionEnemies = function(enemyName)
+    for _, obj in pairs(replicated:GetChildren()) do
+        if obj:IsA("Model") and ((typeof(enemyName) == "table" and table.find(enemyName, obj.Name) or obj.Name == enemyName) and (obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0)) then
+            return obj
+        end
+    end
+    
+    for _, obj in next, workspace.Enemies:GetChildren() do
+        if obj:IsA("Model") and ((typeof(enemyName) == "table" and table.find(enemyName, obj.Name) or obj.Name == enemyName) and (obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0)) then
+            return obj
+        end
+    end
+end
+
+-- =============================================
+-- BIẾN TOÀN CỤC
+-- =============================================
+
 local CurrentTarget = nil
 local TargetInfo = { Name = "None", Distance = 0, Health = 0 }
 
@@ -150,33 +168,31 @@ function IsSameTeam(player)
     return player and plr.Team and player.Team == plr.Team
 end
 
--- Lấy người chơi gần nhất
+-- Lấy người chơi gần nhất (GIỐNG SCRIPT GỐC)
 function GetClosestPlayer()
     local closest = nil
-    local shortestDist = 300 -- Khoảng cách mặc định
+    local shortestDist = math.huge
     
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= plr and IsAlive(player) then
-            if _G.NoAimTeam and IsSameTeam(player) then
-                -- Skip
-            else
-                local root = player.Character:FindFirstChild("HumanoidRootPart")
-                if root and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local dist = (plr.Character.HumanoidRootPart.Position - root.Position).Magnitude
-                    if dist < shortestDist then
-                        shortestDist = dist
-                        closest = player
+        if player ~= plr then
+            if player.Character and player.Character:FindFirstChild("Head") and player.Character.Humanoid.Health > 0 then
+                if _G.AimCam or _G.AimMethod then
+                    if plr.Character and plr.Character:FindFirstChild("Head") then
+                        local dist = (player.Character.Head.Position - plr.Character.Head.Position).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            closest = player
+                        end
                     end
                 end
             end
         end
     end
-    
     return closest
 end
 
 -- =============================================
--- AIMBOT LOOP
+-- AIMBOT LOOP (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 task.spawn(function()
@@ -196,11 +212,9 @@ task.spawn(function()
                 elseif ABmethod == "Auto Aimbots" then
                     -- Auto aim người gần nhất
                     local closest = GetClosestPlayer()
-                    if closest then
+                    if closest and closest.Character and closest.Character:FindFirstChild("HumanoidRootPart") then
+                        MousePos = closest.Character.HumanoidRootPart.Position
                         CurrentTarget = closest
-                        if closest.Character and closest.Character:FindFirstChild("HumanoidRootPart") then
-                            MousePos = closest.Character.HumanoidRootPart.Position
-                        end
                     else
                         CurrentTarget = nil
                     end
@@ -225,7 +239,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- AIMBOT CAMERA
+-- AIMBOT CAMERA (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 task.spawn(function()
@@ -234,19 +248,18 @@ task.spawn(function()
             if _G.AimCam then
                 local camera = workspace.CurrentCamera
                 
-                local function getClosestPlayer()
+                -- Hàm tìm người chơi gần nhất (GIỐNG SCRIPT GỐC)
+                local function closestplayer()
                     local closest = nil
                     local shortestDist = math.huge
                     
-                    for _, player in ipairs(Players:GetPlayers()) do
+                    for _, player in next, ply:GetPlayers() do
                         if player ~= plr then
                             if player.Character and player.Character:FindFirstChild("Head") and _G.AimCam and player.Character.Humanoid.Health > 0 then
-                                if plr.Character and plr.Character:FindFirstChild("Head") then
-                                    local dist = (player.Character.Head.Position - plr.Character.Head.Position).Magnitude
-                                    if dist < shortestDist then
-                                        shortestDist = dist
-                                        closest = player
-                                    end
+                                local dist = (player.Character.Head.Position - plr.Character.Head.Position).Magnitude
+                                if dist < shortestDist then
+                                    shortestDist = dist
+                                    closest = player
                                 end
                             end
                         end
@@ -254,7 +267,7 @@ task.spawn(function()
                     return closest
                 end
                 
-                local target = getClosestPlayer()
+                local target = closestplayer()
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                     camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
                 end
@@ -264,7 +277,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- INFINITY ABILITIES
+-- INFINITY ABILITIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 -- Inf Soru
@@ -301,27 +314,27 @@ task.spawn(function()
 end)
 
 -- =============================================
--- AUTO V4
+-- AUTO V4 (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 task.spawn(function()
-    while wait(0.5) do
-        if _G.RaceClickAutov4 then
-            pcall(function()
+    while wait(0.2) do
+        pcall(function()
+            if _G.RaceClickAutov4 then
                 if plr.Character and plr.Character:FindFirstChild("RaceEnergy") then
                     if plr.Character.RaceEnergy.Value == 1 then
-                        -- Gửi phím Y để kích hoạt V4
+                        -- Dùng hàm Useskills từ script gốc
                         vim1:SendKeyEvent(true, "Y", false, game)
                         wait(0.1)
                         vim1:SendKeyEvent(false, "Y", false, game)
                     end
                 end
-            end)
-        end
+            end
+        end)
     end
 end)
 
--- Auto V3
+-- Auto V3 (GIỐNG SCRIPT GỐC)
 task.spawn(function()
     while wait(30) do
         if _G.RaceClickAutov3 then
@@ -333,12 +346,12 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP FUNCTIONS
+-- ESP FUNCTIONS (GIỐNG SCRIPT GỐC)
 -- =============================================
 
--- ESP Players
+-- ESP Players (GIỐNG SCRIPT GỐC)
 EspPly = function()
-    for _, player in next, Players:GetPlayers() do
+    for _, player in next, Players:GetChildren() do
         pcall(function()
             if not isnil(player.Character) then
                 if PlayerEsp then
@@ -381,7 +394,7 @@ EspPly = function()
     end
 end
 
--- ESP Fruits
+-- ESP Fruits (GIỐNG SCRIPT GỐC)
 DevEsp = function()
     for _, obj in next, workspace:GetChildren() do
         pcall(function()
@@ -419,10 +432,9 @@ DevEsp = function()
 end
 
 -- =============================================
--- VISUAL INDICATORS
+-- VISUAL INDICATORS (GIỐNG SCRIPT GỐC)
 -- =============================================
 
--- Tạo GUI cho visual indicators
 local Visuals = nil
 
 task.spawn(function()
@@ -562,14 +574,14 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ACCEPT ALLIES
+-- ACCEPT ALLIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 task.spawn(function()
     while wait(Sec) do
         if _G.AcceptAlly then
             pcall(function()
-                for _, player in ipairs(Players:GetPlayers()) do
+                for _, player in ipairs(ply:GetChildren()) do
                     if player ~= plr and player.Character and player.Character:FindFirstChild("Humanoid") then
                         replicated.Remotes.CommF_:InvokeServer("AcceptAlly", player.Name)
                     end
@@ -580,7 +592,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- HOP SERVER FUNCTION
+-- HOP SERVER (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 Hop = function()
@@ -597,7 +609,17 @@ Hop = function()
 end
 
 -- =============================================
--- LOAD THƯ VIỆN UI
+-- ANTI AFK (GIỐNG SCRIPT GỐC)
+-- =============================================
+
+plr.Idled:connect(function()
+    vim2:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    vim2:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
+
+-- =============================================
+-- LOAD THƯ VIỆN UI (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local Library = (loadstring(game:HttpGet("https://pastefy.app/TvTv53s5/raw")))()
@@ -610,33 +632,26 @@ local Window = Library:NewWindow()
 local CombatTab = Window:T("⚔️ COMBAT PVP")
 
 -- =============================================
--- SECTION: AIMBOT SETTINGS
+-- SECTION: AIMBOT SETTINGS (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local aimbotSection = CombatTab:AddSection("🎯 AIMBOT SETTINGS")
 
+-- Toggle Aimbot Method Skills (GIỐNG SCRIPT GỐC)
 aimbotSection:AddToggle({
-    Title = "Enable Aimbot Skills",
-    Description = "Tự động nhắm kỹ năng vào mục tiêu",
+    Title = "Aimbot Method Skills",
+    Description = "",
     Default = false,
     Callback = function(value)
         _G.AimMethod = value
     end
 })
 
-aimbotSection:AddToggle({
-    Title = "Enable Aimbot Camera",
-    Description = "Camera tự động xoay theo mục tiêu",
-    Default = false,
-    Callback = function(value)
-        _G.AimCam = value
-    end
-})
-
-local aimMethods = { "Auto Aimbots", "AimBots Skill" }
+-- Dropdown Choose Aim Method (GIỐNG SCRIPT GỐC)
+local aimMethods = { "AimBots Skill", "Auto Aimbots" }
 aimbotSection:AddDropdown({
-    Title = "Aimbot Method",
-    Description = "Chọn phương thức aimbot",
+    Title = "Choose Aim Method",
+    Description = "",
     Values = aimMethods,
     Default = "Auto Aimbots",
     Multi = false,
@@ -645,83 +660,108 @@ aimbotSection:AddDropdown({
     end
 })
 
--- Lấy danh sách người chơi
+-- Dropdown Choose Players (GIỐNG SCRIPT GỐC)
 local playerList = {}
 for _, player in ipairs(Players:GetPlayers()) do
     table.insert(playerList, player.Name)
 end
 
 aimbotSection:AddDropdown({
-    Title = "Select Target",
-    Description = "Chọn người chơi để aim (cho AimBots Skill)",
+    Title = "Choose Players",
+    Description = "",
     Values = playerList,
-    Default = nil,
+    Default = false,
     Multi = false,
     Callback = function(value)
         _G.PlayersList = value
     end
 })
 
+-- Toggle Aimbot Camera (GIỐNG SCRIPT GỐC)
 aimbotSection:AddToggle({
-    Title = "Ignore Same Team",
-    Description = "Không aim vào người cùng team",
-    Default = true,
+    Title = "Aimbot Camera Closest Players",
+    Description = "",
+    Default = false,
+    Callback = function(value)
+        _G.AimCam = value
+    end
+})
+
+-- Toggle Ignore Same Teams (GIỐNG SCRIPT GỐC)
+aimbotSection:AddToggle({
+    Title = "Ignore Same Teams",
+    Description = "turn on for ignore not aimbot same team",
+    Default = false,
     Callback = function(value)
         _G.NoAimTeam = value
     end
 })
 
 -- =============================================
--- SECTION: INFINITY ABILITIES
+-- SECTION: INFINITY ABILITIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local infinitySection = CombatTab:AddSection("♾️ INFINITY ABILITIES")
 
+-- Instance Soru [INF] (GIỐNG SCRIPT GỐC)
 infinitySection:AddToggle({
-    Title = "Infinite Soru",
-    Description = "Soru không cooldown",
+    Title = "Instance Soru [ INF ]",
+    Description = "turn on for make soru infinity",
     Default = false,
     Callback = function(value)
         _G.InfSoru = value
+        if value then
+            getInfinity_Ability("Soru", _G.InfSoru)
+        end
     end
 })
 
+-- Instance Energy [INF] (GIỐNG SCRIPT GỐC)
 infinitySection:AddToggle({
-    Title = "Infinite Energy",
-    Description = "Năng lượng vô hạn",
+    Title = "Instance Energy [ INF ]",
+    Description = "turn on for make energy infinity",
     Default = false,
     Callback = function(value)
         _G.infEnergy = value
+        if value then
+            getInfinity_Ability("Energy", _G.infEnergy)
+        end
     end
 })
 
+-- Instance Observation Range [INF] (GIỐNG SCRIPT GỐC)
 infinitySection:AddToggle({
-    Title = "Infinite Observation Range",
-    Description = "Tầm nhìn Observation vô hạn",
+    Title = "Instance Observation Range [ INF ]",
+    Description = "turn on for make observation range infinity",
     Default = false,
     Callback = function(value)
         _G.InfiniteObRange = value
+        if value then
+            getInfinity_Ability("Observation", _G.InfiniteObRange)
+        end
     end
 })
 
 -- =============================================
--- SECTION: RACE ABILITIES
+-- SECTION: RACE ABILITIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local raceSection = CombatTab:AddSection("👤 RACE ABILITIES")
 
+-- Auto Turn on Race V3 (GIỐNG SCRIPT GỐC)
 raceSection:AddToggle({
-    Title = "Auto Race V3",
-    Description = "Tự động kích hoạt kỹ năng tộc V3",
+    Title = "Auto Turn on Race V3",
+    Description = "",
     Default = false,
     Callback = function(value)
         _G.RaceClickAutov3 = value
     end
 })
 
+-- Auto Turn on Race V4 (GIỐNG SCRIPT GỐC)
 raceSection:AddToggle({
-    Title = "Auto Race V4",
-    Description = "Tự động kích hoạt kỹ năng tộc V4 (phím Y)",
+    Title = "Auto Turn on Race V4",
+    Description = "",
     Default = false,
     Callback = function(value)
         _G.RaceClickAutov4 = value
@@ -729,23 +769,25 @@ raceSection:AddToggle({
 })
 
 -- =============================================
--- SECTION: ESP
+-- SECTION: ESP (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local espSection = CombatTab:AddSection("👁️ ESP")
 
+-- Esp Players (GIỐNG SCRIPT GỐC)
 espSection:AddToggle({
-    Title = "Player ESP",
-    Description = "Nhìn thấy người chơi qua tường",
+    Title = "Esp Players",
+    Description = "",
     Default = false,
     Callback = function(value)
         PlayerEsp = value
     end
 })
 
+-- Esp Fruits (GIỐNG SCRIPT GỐC)
 espSection:AddToggle({
-    Title = "Fruit ESP",
-    Description = "Nhìn thấy trái ác quỷ",
+    Title = "Esp Fruits",
+    Description = "",
     Default = false,
     Callback = function(value)
         DevilFruitESP = value
@@ -760,7 +802,7 @@ local visualSection = CombatTab:AddSection("📊 VISUAL INDICATORS")
 
 visualSection:AddToggle({
     Title = "Show FPS",
-    Description = "Hiển thị FPS",
+    Description = "",
     Default = true,
     Callback = function(value)
         _G.ShowFPS = value
@@ -769,7 +811,7 @@ visualSection:AddToggle({
 
 visualSection:AddToggle({
     Title = "Show Ping",
-    Description = "Hiển thị Ping",
+    Description = "",
     Default = true,
     Callback = function(value)
         _G.ShowPing = value
@@ -778,7 +820,7 @@ visualSection:AddToggle({
 
 visualSection:AddToggle({
     Title = "Show Target Info",
-    Description = "Hiển thị thông tin mục tiêu",
+    Description = "",
     Default = true,
     Callback = function(value)
         _G.ShowTargetInfo = value
@@ -786,92 +828,87 @@ visualSection:AddToggle({
 })
 
 -- =============================================
--- SECTION: UTILITIES
+-- SECTION: UTILITIES (GIỐNG SCRIPT GỐC)
 -- =============================================
 
 local utilitySection = CombatTab:AddSection("🛠️ UTILITIES")
 
+-- Accept Allies (GIỐNG SCRIPT GỐC)
 utilitySection:AddToggle({
-    Title = "Auto Accept Allies",
-    Description = "Tự động chấp nhận lời mời đồng minh",
+    Title = "Accept Allies",
+    Description = "turn on for auto accept ally",
     Default = false,
     Callback = function(value)
         _G.AcceptAlly = value
     end
 })
 
-utilitySection:AddButton({
-    Title = "Hop Server",
-    Description = "Chuyển sang server khác",
-    Callback = function()
-        Hop()
-    end
-})
-
-utilitySection:AddButton({
-    Title = "Rejoin Server",
-    Description = "Vào lại server hiện tại",
-    Callback = function()
-        TeleportService:Teleport(game.PlaceId, plr)
-    end
-})
-
--- =============================================
--- TELEPORT TO PLAYER
--- =============================================
-
-CombatTab:AddSeperator("📌 TELEPORT")
-
-CombatTab:AddToggle({
-    Title = "Teleport to Selected Player",
-    Description = "Dịch chuyển đến người chơi đã chọn",
+-- Teleport to choose players (GIỐNG SCRIPT GỐC)
+utilitySection:AddToggle({
+    Title = "Teleport to choose players",
+    Description = "",
     Default = false,
     Callback = function(value)
         _G.TpPly = value
         if value then
             spawn(function()
-                while _G.TpPly do
-                    wait()
-                    if _G.PlayersList and Players[_G.PlayersList] and Players[_G.PlayersList].Character then
-                        local targetRoot = Players[_G.PlayersList].Character:FindFirstChild("HumanoidRootPart")
-                        if targetRoot then
-                            plr.Character.HumanoidRootPart.CFrame = targetRoot.CFrame
+                pcall(function()
+                    while _G.TpPly do
+                        wait()
+                        if _G.PlayersList and Players[_G.PlayersList] and Players[_G.PlayersList].Character then
+                            local targetRoot = Players[_G.PlayersList].Character:FindFirstChild("HumanoidRootPart")
+                            if targetRoot then
+                                plr.Character.HumanoidRootPart.CFrame = targetRoot.CFrame
+                            end
                         end
                     end
-                end
+                end)
             end)
         end
     end
 })
 
-CombatTab:AddToggle({
-    Title = "Spectate Selected Player",
-    Description = "Xem từ góc nhìn người chơi đã chọn",
+-- Spectate Choose Players (GIỐNG SCRIPT GỐC)
+utilitySection:AddToggle({
+    Title = "Spectate Choose Players",
+    Description = "",
     Default = false,
     Callback = function(value)
         if value then
             spawn(function()
-                while value do
-                    wait(0.1)
+                repeat
+                    task.wait(0.1)
                     if _G.PlayersList and Players[_G.PlayersList] and Players[_G.PlayersList].Character then
                         workspace.Camera.CameraSubject = Players[_G.PlayersList].Character.Humanoid
                     end
-                end
+                until not value
                 workspace.Camera.CameraSubject = plr.Character.Humanoid
             end)
         end
     end
 })
 
+-- Hop Server Button (GIỐNG SCRIPT GỐC)
+utilitySection:AddButton({
+    Title = "Hop Server",
+    Description = "",
+    Callback = function()
+        Hop()
+    end
+})
+
+-- Rejoin Server Button (GIỐNG SCRIPT GỐC)
+utilitySection:AddButton({
+    Title = "Rejoin Server",
+    Description = "",
+    Callback = function()
+        TeleportService:Teleport(game.PlaceId, plr)
+    end
+})
+
 -- =============================================
--- ANTI AFK
+-- THÔNG BÁO
 -- =============================================
 
-plr.Idled:connect(function()
-    vim2:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    wait(1)
-    vim2:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-end)
-
-print("✅ Blox Fruits PvP Only Script Loaded!")
-print("⚔️ Only Combat PVP Tab - All Farm Features Removed")
+print("✅ Blox Fruits PvP Only Script - GIỐNG HỆT SCRIPT GỐC!")
+print("⚔️ Chỉ giữ lại Combat PVP Tab - Aimbot giống 100%")
