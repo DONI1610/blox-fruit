@@ -1629,6 +1629,12 @@ utilitySection:AddButton({
     end
 })
 
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "✅ SUCCESS",
+    Text = "Script loaded successfully!",
+    Duration = 2
+})
+
 -- =============================================
 -- THÔNG BÁO
 -- =============================================
