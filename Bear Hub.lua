@@ -8,7 +8,7 @@ local Services = setmetatable({}, {
 
 
 local HttpService = Services.HttpService
-local FolderName = "Bear hub | Farm"
+local FolderName = "DONI Hub | Farm"
 local FileName = "Settings.json"
 local FullPath = FolderName .. "/" .. FileName
 
@@ -2639,9 +2639,9 @@ local function performClick()
     getgenv().AutoClickShootSettings.LastClickTime = currentTime
 end
 
-local bearlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Myvkhuy/BearLibrary/Bearlib/V8.1.lua"))()
+local bearlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/DONI1610/blox-fruit/refs/heads/main/gui.lua"))()
 local Window = bearlib:MakeWindow({
-    Title = "Bear hub | Farm",
+    Title = "DONI Hub | Farm",
     SubTitle = "by Quang Huy",
     SaveFolder = true,
     Image = "82107905019656"
@@ -2651,7 +2651,7 @@ local Window = bearlib:MakeWindow({
 task.spawn(function()
     task.wait(2)
     bearlib:Notify({
-        Title = "Bear Hub",
+        Title = "",
         Message = "Script Load Download Completed",
         Duration = 10
     })
@@ -2743,7 +2743,7 @@ v0:AddSingleDiscordCard({
 
 v0:AddParagraph({
     "Thông báo",
-    "•Bear hub\n• Script by Quang Huy\n• Creation Date: 7-6-2026\n• Last updated date: 7-6-2026\n• Aura gun hiện chưa bắn được thuyền và leviathan"
+    "•\n• Script by Quang Huy\n• Creation Date: 7-6-2026\n• Last updated date: 7-6-2026\n• Aura gun hiện chưa bắn được thuyền và leviathan"
 })
 
 -- 1. Tạo Discord Invite Container với 2 card
@@ -5153,7 +5153,7 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- AUTO FISHING SYSTEM (Ported from Bear Hub)
+-- AUTO FISHING SYSTEM (Ported from )
 -- =========================================================
 v5:AddSection({"Fishing"})
 
@@ -6094,7 +6094,7 @@ if World3 then
         pcall(function()
             while wait(Sec) do
                 if _G.Auto_Rainbow_Haki then
-                    -- Copy logic Rainbow Haki từ file Bear hub.txt (dòng 2058-2154) vào đây nếu cần
+                    -- Copy logic Rainbow Haki từ file .txt (dòng 2058-2154) vào đây nếu cần
                     -- Đoạn này khá dài, bạn có thể thêm sau nếu muốn
                 end;
             end;
@@ -11615,7 +11615,7 @@ v14:AddToggle({
                 local data = MeleeCoords[SelectedMelee]
                 if not data or not data.Pos then
                     bearlib:Notify({
-                        Title = "Bear Hub",
+                        Title = "",
                         Message = "Lỗi: Không tìm thấy toạ độ cho Melee này ở Sea hiện tại!",
                         Duration = 3
                     })
@@ -11641,7 +11641,7 @@ v14:AddToggle({
                         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", data.Key)
                         
                         bearlib:Notify({
-                            Title = "Bear Hub",
+                            Title = "",
                             Message = "Đã mua: " .. SelectedMelee,
                             Duration = 2
                         })
