@@ -3038,7 +3038,7 @@ function bearlib:MakeWindow(Configs)
         ToggleButton.Name = "ToggleButton"
         ToggleButton.Size = UDim2.new(0, 50, 0, 50)
         ToggleButton.Position = UDim2.new(0.12, 0, 0.12, 0)
-        ToggleButton.Image = "rbxassetid://108449485047823"
+        ToggleButton.Image = "rbxassetid://4926392543"
         ToggleButton.BackgroundColor3 = Theme["Color Hub 2"]
         ToggleButton.BackgroundTransparency = 0.2
         ToggleButton.Active = true
@@ -3216,7 +3216,7 @@ local function CreateNotification(Icon, Title, Message, Duration)
     TitleLabel.TextSize = 15
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.TextYAlignment = Enum.TextYAlignment.Top
-    TitleLabel.Text = Title or "Bear Hub"
+    TitleLabel.Text = Title or "DONI Hub"
     TitleLabel.ZIndex = 1003
     TitleLabel.TextStrokeTransparency = 0.3
     TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
@@ -3318,9 +3318,9 @@ local function ProcessNotificationQueue()
 end
 
 function bearlib:Notify(Configs)
-    local Title = Configs.Title or Configs[1] or "Bear Hub"
+    local Title = Configs.Title or Configs[1] or "DONI Hub"
     local Message = Configs.Message or Configs[2] or Configs.Text or ""
-    local Icon = Configs.Icon or "rbxassetid://76571437829227"
+    local Icon = Configs.Icon or "rbxassetid://6675147490"
     local Duration = Configs.Duration or Configs.Time or 5
     
     table.insert(NotificationQueue, {
