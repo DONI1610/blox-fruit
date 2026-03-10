@@ -2731,16 +2731,6 @@ v0:AddProfile({
     Cover = "rbxassetid://113942234405258", 
     Verified = true 
 })
-v0:AddSingleDiscordCard({
-"Huy Script 🇻🇳",
-        "tiktok tui nè ",
-        "rbxassetid://75089236463451",
-        "rbxassetid://125520177394706",
-        2000,
-        10000,
-        "https://tiktok/@doni_z2"
-})
-
 v0:AddParagraph({
     "Thông báo",
     "I am gay"
