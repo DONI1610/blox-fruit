@@ -2642,7 +2642,7 @@ end
 local bearlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/DONI1610/blox-fruit/refs/heads/main/gui.lua"))()
 local Window = bearlib:MakeWindow({
     Title = "DONI Hub | Farm",
-    SubTitle = "by Quang Huy",
+    SubTitle = "by Thực nè",
     SaveFolder = true,
     Image = "82107905019656"
 })
