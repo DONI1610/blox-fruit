@@ -2725,7 +2725,7 @@ local v15 = Window:MakeTab({
 })
 
 v0:AddProfile({
-    Name = "Quang Huy ☑",             
+    Name = "DONI",             
     Bio = "I LOVE VIETNAM'S", 
     Avatar = "rbxassetid://75089236463451", 
     Cover = "rbxassetid://113942234405258", 
@@ -2733,42 +2733,19 @@ v0:AddProfile({
 })
 v0:AddSingleDiscordCard({
 "Huy Script 🇻🇳",
-        "Follow our TikTok channel for the latest updates!!!",
+        "tiktok tui nè ",
         "rbxassetid://75089236463451",
         "rbxassetid://125520177394706",
         2000,
         10000,
-        "https://tiktok.me/group/ZSm9FrLKD/"
+        "https://tiktok/@doni_z2"
 })
 
 v0:AddParagraph({
     "Thông báo",
-    "•\n• Script by Quang Huy\n• Creation Date: 7-6-2026\n• Last updated date: 7-6-2026\n• Aura gun hiện chưa bắn được thuyền và leviathan"
+    "I am gay"
 })
 
--- 1. Tạo Discord Invite Container với 2 card
-local discordContainer = v0:AddDiscordInvite({
-    -- Card 1
-    {
-        "Join the TikTok Group",
-        "Follow our TikTok channel for the latest updates!!!",
-        "rbxassetid://134852113716171",
-        "rbxassetid://84636833673111",
-        500,
-        1500,
-        "https://tiktok.me/group/ZSm9FrLKD/"
-    },
-    -- Card 2
-    {
-        "Join the Discord group",
-        "Join the Discord group to stay updated with the latest announcements.",
-        "rbxassetid://134852113716171",
-        "rbxassetid://123427419242741",
-        250,
-        1000,
-        "https://discord.gg/4XtcBYZ89"
-    }
-})
 
 local Time = v1:AddParagraph({
     Title = "Time Zone",
