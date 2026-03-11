@@ -100,6 +100,8 @@ Lighting.FogEnd = 1e10
 do
     ply = Services.Players
     plr = ply.LocalPlayer
+
+	 repeat task.wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
     Root = plr.Character.HumanoidRootPart
     replicated = Services.ReplicatedStorage
     Lv = plr.Data.Level.Value
