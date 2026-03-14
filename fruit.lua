@@ -1,5 +1,6 @@
 --[[
     Script tự động Random Fruit + Auto Store + Auto Hop (10s nếu không có fruit) + Auto Join Team
+    ĐÃ SỬA LỖI HOP
 ]]
 
 local Players = game:GetService("Players")
@@ -23,10 +24,10 @@ local Settings = {
     AutoHop = true,              -- Tự động hop server
     AutoJoinTeam = true,         -- Tự động chọn phe
     
-    -- Cấu hình thời gian
+    -- Cấu hình thời gian HOP (ĐÃ SỬA)
     HopDelay = 10,                -- Số giây chờ trước khi hop nếu không có fruit (10s)
-    CheckInterval = 3,            -- Thời gian kiểm tra (giây)
-    NoFruitCheckCount = 3,        -- Số lần kiểm tra liên tiếp không có fruit thì hop
+    CheckInterval = 2,            -- Thời gian kiểm tra (giây)
+    MaxNoFruitChecks = 3,         -- Số lần kiểm tra liên tiếp không có fruit thì hop
     
     -- Cấu hình tiền
     MinBeliForRandom = 500000,    -- Tiền tối thiểu để random (500k)
@@ -51,6 +52,8 @@ local StoredFruits = {}
 local NoFruitCount = 0              -- Đếm số lần liên tiếp không có fruit
 local JoinedTeam = false            -- Đã chọn phe chưa
 local StartTime = tick()            -- Thời gian bắt đầu
+local HopTimer = 0                  -- Timer đếm ngược hop
+local HopCountdown = false          -- Đang đếm ngược để hop
 
 -- Tạo Part để teleport
 local TweenPart = Instance.new("Part", Workspace)
@@ -249,7 +252,7 @@ end
 local function randomFruit()
     if not Settings.AutoRandom then return end
     
-    -- Kiểm tra phe trước khi random (vì random fruit cần phe)
+    -- Kiểm tra phe trước khi random
     if Settings.AutoJoinTeam and not JoinedTeam then
         joinTeam()
     end
@@ -367,45 +370,12 @@ local function collectFruit(fruitData)
     CurrentFruit = nil
 end
 
--- Hàm HOP SERVER với cơ chế 10 giây
-local function checkAndHop()
-    if not Settings.AutoHop or IsHopping then return end
-    
-    local fruitCount = scanForFruits()
-    
-    -- Nếu KHÔNG có fruit trên map
-    if fruitCount == 0 then
-        NoFruitCount = NoFruitCount + 1
-        local timeOnServer = math.floor(tick() - StartTime)
-        
-        print("⏳ Lần " .. NoFruitCount .. "/" .. Settings.NoFruitCheckCount .. " không có fruit (Đã ở server: " .. timeOnServer .. "s)")
-        
-        -- Nếu đã đủ số lần kiểm tra liên tiếp không có fruit
-        if NoFruitCount >= Settings.NoFruitCheckCount then
-            print("🔄 Server không có fruit sau " .. Settings.HopDelay .. " giây, đang tìm server mới...")
-            
-            -- Lưu trữ fruit trước khi hop
-            if Settings.AutoStore then
-                storeAllFruits()
-            end
-            
-            -- Đếm ngược 10 giây
-            for i = Settings.HopDelay, 1, -1 do
-                print("⏱️ Hop sau " .. i .. " giây...")
-                wait(1)
-            end
-            
-            hopToLowestServer()
-        end
-    else
-        -- Nếu có fruit, reset bộ đếm
-        NoFruitCount = 0
-    end
-end
-
--- Hàm hop đến server ít người nhất
+-- Hàm HOP SERVER - ĐÃ SỬA LỖI
 local function hopToLowestServer()
+    if IsHopping then return end
     IsHopping = true
+    
+    print("🔍 Đang tìm server có ít người nhất...")
     
     local function getServers()
         local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100"
@@ -425,18 +395,76 @@ local function hopToLowestServer()
     
     for _, server in pairs(servers) do
         if server.playing < server.maxPlayers and server.playing < lowestPlayers then
-            lowestPlayers = server.playing
-            lowestServer = server
+            -- Không hop vào server hiện tại
+            if server.id ~= game.JobId then
+                lowestPlayers = server.playing
+                lowestServer = server
+            end
         end
     end
     
     if lowestServer then
-        print("🌍 Chuyển đến server có " .. lowestServer.playing .. " người...")
+        print("🌍 Đang chuyển đến server " .. lowestServer.id)
+        print("👥 Số người: " .. lowestServer.playing .. "/" .. lowestServer.maxPlayers)
         wait(1)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, lowestServer.id, LocalPlayer)
     else
-        print("❌ Không tìm thấy server phù hợp")
+        print("❌ Không tìm thấy server phù hợp, thử lại sau...")
         IsHopping = false
+        NoFruitCount = 0
+        HopCountdown = false
+    end
+end
+
+-- Hàm KIỂM TRA VÀ BẮT ĐẦU HOP - ĐÃ SỬA
+local function checkAndStartHop()
+    if not Settings.AutoHop or IsHopping then return end
+    
+    local fruitCount = scanForFruits()
+    
+    -- Nếu KHÔNG có fruit trên map
+    if fruitCount == 0 then
+        NoFruitCount = NoFruitCount + 1
+        local timeOnServer = math.floor(tick() - StartTime)
+        
+        print("⏳ Lần " .. NoFruitCount .. "/" .. Settings.MaxNoFruitChecks .. " không có fruit")
+        
+        -- Nếu đã đủ số lần kiểm tra liên tiếp không có fruit
+        if NoFruitCount >= Settings.MaxNoFruitChecks and not HopCountdown then
+            print("🔄 Server không có fruit, bắt đầu đếm ngược " .. Settings.HopDelay .. " giây...")
+            
+            -- Lưu trữ fruit trước khi hop
+            if Settings.AutoStore then
+                storeAllFruits()
+            end
+            
+            HopCountdown = true
+            HopTimer = Settings.HopDelay
+            
+            -- Vòng lặp đếm ngược RIÊNG
+            spawn(function()
+                while HopCountdown and HopTimer > 0 do
+                    print("⏱️ Hop sau " .. HopTimer .. " giây...")
+                    wait(1)
+                    HopTimer = HopTimer - 1
+                end
+                
+                if HopCountdown then
+                    print("🚀 Đang thực hiện hop server...")
+                    hopToLowestServer()
+                end
+            end)
+        end
+    else
+        -- Nếu có fruit, reset bộ đếm và hủy đếm ngược
+        if NoFruitCount > 0 then
+            NoFruitCount = 0
+        end
+        if HopCountdown then
+            print("✅ Có fruit xuất hiện, hủy đếm ngược hop")
+            HopCountdown = false
+            HopTimer = 0
+        end
     end
 end
 
@@ -475,8 +503,8 @@ spawn(function()
                 end
             end
             
-            -- Kiểm tra và hop server (10s nếu không có fruit)
-            checkAndHop()
+            -- KIỂM TRA VÀ HOP SERVER (ĐÃ SỬA)
+            checkAndStartHop()
         end)
     end
 end)
@@ -489,6 +517,10 @@ Workspace.ChildAdded:Connect(function(child)
         
         -- Reset bộ đếm không fruit khi có fruit mới
         NoFruitCount = 0
+        if HopCountdown then
+            HopCountdown = false
+            HopTimer = 0
+        end
         
         if Settings.AutoCollect and not Collecting then
             local handle = child:FindFirstChild("Handle")
@@ -524,7 +556,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer.PlayerGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 320, 0, 250)
+MainFrame.Size = UDim2.new(0, 320, 0, 280)
 MainFrame.Position = UDim2.new(0, 10, 0, 10)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BackgroundTransparency = 0.1
@@ -595,19 +627,29 @@ StoredText.TextScaled = true
 StoredText.Font = Enum.Font.Gotham
 StoredText.Parent = MainFrame
 
-local HopText = Instance.new("TextLabel")
-HopText.Size = UDim2.new(1, 0, 0, 25)
-HopText.Position = UDim2.new(0, 0, 0, 190)
-HopText.BackgroundTransparency = 1
-HopText.Text = "Hop sau: 0s (0/3)"
-HopText.TextColor3 = Color3.fromRGB(255, 100, 100)
-HopText.TextScaled = true
-HopText.Font = Enum.Font.Gotham
-HopText.Parent = MainFrame
+local HopStatusText = Instance.new("TextLabel")
+HopStatusText.Size = UDim2.new(1, 0, 0, 25)
+HopStatusText.Position = UDim2.new(0, 0, 0, 190)
+HopStatusText.BackgroundTransparency = 1
+HopStatusText.Text = "Trạng thái: Bình thường"
+HopStatusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+HopStatusText.TextScaled = true
+HopStatusText.Font = Enum.Font.Gotham
+HopStatusText.Parent = MainFrame
+
+local HopTimerText = Instance.new("TextLabel")
+HopTimerText.Size = UDim2.new(1, 0, 0, 25)
+HopTimerText.Position = UDim2.new(0, 0, 0, 220)
+HopTimerText.BackgroundTransparency = 1
+HopTimerText.Text = "Đếm ngược: 0s"
+HopTimerText.TextColor3 = Color3.fromRGB(255, 200, 100)
+HopTimerText.TextScaled = true
+HopTimerText.Font = Enum.Font.Gotham
+HopTimerText.Parent = MainFrame
 
 local TimeText = Instance.new("TextLabel")
 TimeText.Size = UDim2.new(1, 0, 0, 25)
-TimeText.Position = UDim2.new(0, 0, 0, 220)
+TimeText.Position = UDim2.new(0, 0, 0, 250)
 TimeText.BackgroundTransparency = 1
 TimeText.Text = "Thời gian: 0s"
 TimeText.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -617,7 +659,7 @@ TimeText.Parent = MainFrame
 
 -- Cập nhật GUI
 spawn(function()
-    while wait(1) do
+    while wait(0.5) do
         pcall(function()
             local fruitOnMap = #FruitsOnMap
             local fruitInInventory = countFruitsInInventory()
@@ -639,8 +681,24 @@ spawn(function()
             end
             
             -- Hiển thị trạng thái hop
-            HopText.Text = "Hop sau: " .. (fruitOnMap == 0 and Settings.HopDelay or 0) .. "s (" .. NoFruitCount .. "/" .. Settings.NoFruitCheckCount .. ")"
-            HopText.TextColor3 = fruitOnMap == 0 and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(100, 255, 100)
+            if HopCountdown then
+                HopStatusText.Text = "Trạng thái: Đang đếm ngược hop"
+                HopStatusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+                HopTimerText.Text = "Đếm ngược: " .. HopTimer .. "s"
+                HopTimerText.TextColor3 = Color3.fromRGB(255, 100, 100)
+            elseif IsHopping then
+                HopStatusText.Text = "Trạng thái: Đang hop..."
+                HopStatusText.TextColor3 = Color3.fromRGB(255, 200, 0)
+                HopTimerText.Text = "Đếm ngược: 0s"
+            elseif fruitOnMap == 0 then
+                HopStatusText.Text = "Trạng thái: Chờ fruit (" .. NoFruitCount .. "/" .. Settings.MaxNoFruitChecks .. ")"
+                HopStatusText.TextColor3 = Color3.fromRGB(255, 200, 0)
+                HopTimerText.Text = "Đếm ngược: 0s"
+            else
+                HopStatusText.Text = "Trạng thái: Đang thu thập"
+                HopStatusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+                HopTimerText.Text = "Đếm ngược: 0s"
+            end
             
             if Collecting and CurrentFruit then
                 StatusText.Text = "Đang nhặt: " .. CurrentFruit.Name
@@ -651,8 +709,11 @@ spawn(function()
             elseif fruitInInventory >= Settings.MaxFruitsInInventory then
                 StatusText.Text = "Đang lưu trữ..."
                 StatusText.TextColor3 = Color3.fromRGB(100, 200, 255)
+            elseif HopCountdown then
+                StatusText.Text = "Sắp hop: " .. HopTimer .. "s"
+                StatusText.TextColor3 = Color3.fromRGB(255, 100, 100)
             else
-                StatusText.Text = "Chờ fruit (" .. NoFruitCount .. "/" .. Settings.NoFruitCheckCount .. ")"
+                StatusText.Text = "Chờ fruit (" .. NoFruitCount .. "/" .. Settings.MaxNoFruitChecks .. ")"
                 StatusText.TextColor3 = Color3.fromRGB(255, 100, 100)
             end
         end)
@@ -662,4 +723,4 @@ end)
 print("✅ Script đã khởi động!")
 print("💰 Beli: " .. getBeli()/1000 .. "k")
 print("🏴‍☠️ Tự động chọn phe: " .. (Settings.AutoJoinTeam and "BẬT" or "TẮT"))
-print("⏱️ Hop sau " .. Settings.HopDelay .. " giây nếu không có fruit")
+print("⏱️ Sẽ hop sau " .. Settings.HopDelay .. " giây nếu không có fruit")
