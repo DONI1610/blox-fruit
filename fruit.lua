@@ -1,10 +1,6 @@
 --[[
-    SCRIPT SĂN FRUIT - ĐÃ SỬA LỖI HOP
-    - Tự động random fruit khi đủ tiền
-    - Tự động nhặt fruit trên map
-    - Tự động lưu trữ vào kho
-    - Tự động chọn phe (Hải tặc/Hải quân)
-    - TỰ ĐỘNG HOP SAU 10 GIÂY NẾU KHÔNG CÓ FRUIT
+    Script tự động Random Fruit + Auto Store + Auto Hop + Auto Join Team
+    Dựa trên code từ doni.lua
 ]]
 
 local Players = game:GetService("Players")
@@ -15,35 +11,46 @@ local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
+-- ========================================
 -- CẤU HÌNH
+-- ========================================
 local Settings = {
     AutoRandom = true,           -- Tự động random fruit
     AutoCollect = true,          -- Tự động nhặt fruit
-    AutoStore = true,            -- Tự động lưu trữ fruit
+    AutoStore = true,            -- Tự động lưu trữ fruit (dùng code của bạn)
     AutoHop = true,              -- Tự động hop server
-    AutoJoinTeam = true,         -- Tự động chọn phe
+    AutoJoinTeam = true,         -- Tự động chọn phe (dùng code của bạn)
     
-    -- CẤU HÌNH THỜI GIAN HOP
+    -- CẤU HÌNH THỜI GIAN
     HopDelay = 10,                -- Số giây đếm ngược trước khi hop
     CheckInterval = 2,            -- Thời gian kiểm tra (giây)
     MaxNoFruitChecks = 3,         -- Số lần kiểm tra liên tiếp không có fruit
     
-    -- CẤU HÌNH KHÁC
+    -- CẤU HÌNH TIỀN
     MinBeliForRandom = 500000,    -- Tiền tối thiểu để random
     MaxFruitsInInventory = 5,      -- Số fruit tối đa trong hành trang
-    TeleportSpeed = 300,           -- Tốc độ di chuyển
-    ShowESP = true,                -- Hiển thị ESP
     
-    -- CHỌN PHE (1 = Hải tặc, 2 = Hải quân)
-    TeamToJoin = 1,
+    -- CẤU HÌNH DI CHUYỂN
+    TeleportSpeed = 300,           -- Tốc độ di chuyển
+    
+    -- CẤU HÌNH HIỂN THỊ
+    ShowESP = true,                -- Hiển thị ESP cho fruit
+    
+    -- ========================================
+    -- CODE AUTO TEAM CỦA BẠN
+    -- ========================================
+    DesiredTeam = "Marines",       -- "Pirates" hoặc "Marines"
 }
 
+-- ========================================
 -- BIẾN TOÀN CỤC
+-- ========================================
 local FruitsOnMap = {}
 local Collecting = false
 local CurrentFruit = nil
@@ -65,7 +72,9 @@ TweenPart.CanCollide = false
 TweenPart.CanTouch = false
 TweenPart.Transparency = 1
 
--- HÀM TELEPORT MƯỢT MÀ
+-- ========================================
+-- HÀM TELEPORT
+-- ========================================
 local function tweenTo(targetCFrame)
     if not targetCFrame then return end
     
@@ -110,44 +119,52 @@ elseif game.PlaceId == 7449423635 or game.PlaceId == 100117331123089 then
     World = 3
 end
 
--- HÀM CHỌN PHE
-local function joinTeam()
+-- ========================================
+-- CODE AUTO TEAM CỦA BẠN (ĐÃ TÍCH HỢP)
+-- ========================================
+local function autoJoinTeam()
     if not Settings.AutoJoinTeam or JoinedTeam then return end
     
-    if LocalPlayer.Team ~= nil then
-        print("✅ Đã có phe: " .. tostring(LocalPlayer.Team))
+    -- Kiểm tra player
+    local player = game.Players.LocalPlayer
+    if not player then return end
+    
+    -- Chờ player có Data
+    repeat wait(1) until player:FindFirstChild("Data")
+    
+    -- KIỂM TRA TEAM HIỆN TẠI
+    if not player.Team or player.Team.Name ~= Settings.DesiredTeam then
+        print("🔄 Đang gia nhập phe: " .. Settings.DesiredTeam .. "...")
+        
+        -- DÙNG PCALL ĐỂ TRÁNH LỖI (GIỐNG CODE CỦA BẠN)
+        pcall(function()
+            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", Settings.DesiredTeam)
+        end)
+        
+        -- Kiểm tra kết quả
+        wait(2)
+        if player.Team and player.Team.Name == Settings.DesiredTeam then
+            print("✅ Đã gia nhập phe: " .. Settings.DesiredTeam)
+            JoinedTeam = true
+        else
+            print("❌ Không thể gia nhập phe, thử lại sau...")
+        end
+    else
+        print("✅ Đã ở phe: " .. Settings.DesiredTeam)
         JoinedTeam = true
-        return
     end
-    
-    print("🔄 Đang chọn phe...")
-    
-    if Settings.TeamToJoin == 1 then
-        local success = pcall(function()
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
-        end)
-        if success then
-            print("🏴‍☠️ Đã gia nhập Hải tặc!")
-        end
-    elseif Settings.TeamToJoin == 2 then
-        local success = pcall(function()
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Marines")
-        end)
-        if success then
-            print("⚓ Đã gia nhập Hải quân!")
-        end
-    end
-    
-    JoinedTeam = true
-    wait(2)
 end
 
+-- ========================================
 -- HÀM LẤY BELI
+-- ========================================
 local function getBeli()
     return LocalPlayer.Data.Beli.Value
 end
 
+-- ========================================
 -- HÀM ĐẾM FRUIT TRONG HÀNH TRANG
+-- ========================================
 local function countFruitsInInventory()
     local count = 0
     for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
@@ -165,7 +182,9 @@ local function countFruitsInInventory()
     return count
 end
 
+-- ========================================
 -- HÀM LẤY DANH SÁCH FRUIT
+-- ========================================
 local function getFruitsInInventory()
     local fruits = {}
     
@@ -192,61 +211,50 @@ local function getFruitsInInventory()
     return fruits
 end
 
--- HÀM KIỂM TRA FRUIT ĐÃ LƯU
-local function isFruitStored(fruitName)
-    for _, stored in pairs(StoredFruits) do
-        if stored == fruitName then
-            return true
-        end
-    end
-    return false
-end
-
--- HÀM LƯU TRỮ FRUIT
-local function storeFruit(fruitItem, fruitName)
-    if not Settings.AutoStore then return end
-    
-    if isFruitStored(fruitName) then return end
-    
-    local eatRemote = fruitItem:FindFirstChild("EatRemote", true)
-    if not eatRemote then return end
-    
-    local success = pcall(function()
-        return ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", fruitItem)
-    end)
-    
-    if success then
-        print("💾 Đã lưu trữ: " .. fruitName)
-        table.insert(StoredFruits, fruitName)
-    end
-end
-
--- HÀM LƯU TRỮ TẤT CẢ FRUIT
+-- ========================================
+-- CODE AUTO STORE FRUIT CỦA BẠN (UpdStFruit)
+-- ========================================
 local function storeAllFruits()
     if not Settings.AutoStore then return end
     
-    local fruits = getFruitsInInventory()
-    if #fruits == 0 then return end
+    local stored = 0
+    print("🔄 Đang kiểm tra fruit trong hành trang...")
     
-    print("🔄 Đang lưu " .. #fruits .. " fruit...")
-    
-    for _, fruit in pairs(fruits) do
-        if fruit.Location == "Character" then
-            fruit.Item.Parent = LocalPlayer.Backpack
-            wait(0.2)
+    -- GIỐNG HỆT CODE UpdStFruit CỦA BẠN
+    for I, e in next, LocalPlayer.Backpack:GetChildren() do
+        local StoreFruit = e:FindFirstChild("EatRemote", true)
+        if StoreFruit then
+            local fruitName = e.Name
+            print("📦 Tìm thấy fruit: " .. fruitName)
+            
+            -- Gọi remote StoreFruit (giống code gốc)
+            local success = pcall(function()
+                ReplicatedStorage.Remotes.CommF_:InvokeServer(
+                    "StoreFruit", 
+                    StoreFruit.Parent:GetAttribute("OriginalName"), 
+                    LocalPlayer.Backpack:FindFirstChild(e.Name)
+                )
+            end)
+            
+            if success then
+                stored = stored + 1
+                print("💾 Đã lưu trữ: " .. fruitName)
+                table.insert(StoredFruits, fruitName)
+                wait(0.3)
+            end
         end
-        storeFruit(fruit.Item, fruit.Name)
-        wait(0.3)
+    end
+    
+    if stored > 0 then
+        print("✅ Đã lưu tổng cộng " .. stored .. " fruit vào kho")
     end
 end
 
+-- ========================================
 -- HÀM RANDOM FRUIT
+-- ========================================
 local function randomFruit()
     if not Settings.AutoRandom then return end
-    
-    if Settings.AutoJoinTeam and not JoinedTeam then
-        joinTeam()
-    end
     
     local beli = getBeli()
     if beli >= Settings.MinBeliForRandom then
@@ -257,13 +265,15 @@ local function randomFruit()
             wait(1)
         end
         
-        print("🎲 Đang random fruit...")
+        print("🎲 Đang random fruit... (Beli: " .. math.floor(beli/1000) .. "k)")
         ReplicatedStorage.Remotes.CommF_:InvokeServer("Cousin", "Buy")
         wait(2)
     end
 end
 
+-- ========================================
 -- HÀM SCAN FRUIT TRÊN MAP
+-- ========================================
 local function scanForFruits()
     FruitsOnMap = {}
     
@@ -290,7 +300,9 @@ local function scanForFruits()
     return #FruitsOnMap
 end
 
+-- ========================================
 -- HÀM TẠO ESP
+-- ========================================
 local function createFruitESP(fruitData)
     if not Settings.ShowESP then return end
     
@@ -317,13 +329,15 @@ local function createFruitESP(fruitData)
     end
 end
 
+-- ========================================
 -- HÀM THU THẬP FRUIT
+-- ========================================
 local function collectFruit(fruitData)
     if Collecting then return end
     Collecting = true
     CurrentFruit = fruitData
     
-    print("🍎 Đang đến: " .. fruitData.Name)
+    print("🍎 Đang đến: " .. fruitData.Name .. " | " .. math.floor(fruitData.Distance/3) .. "m")
     
     local tween = tweenTo(CFrame.new(fruitData.Position))
     
@@ -345,13 +359,9 @@ local function collectFruit(fruitData)
         
         wait(1)
         
+        -- Tự động lưu trữ sau khi nhặt
         if Settings.AutoStore then
-            for _, fruit in pairs(getFruitsInInventory()) do
-                if fruit.Name == fruitData.Name and not isFruitStored(fruit.Name) then
-                    storeFruit(fruit.Item, fruit.Name)
-                    break
-                end
-            end
+            storeAllFruits()
         end
         
         wait(0.5)
@@ -361,16 +371,21 @@ local function collectFruit(fruitData)
     CurrentFruit = nil
 end
 
--- ============================================
--- HÀM HOP SERVER - ĐÃ SỬA LỖI
--- ============================================
+-- ========================================
+-- HÀM HOP SERVER
+-- ========================================
 local function hopToNewServer()
     if IsHopping then return end
     IsHopping = true
     
     print("🔍 Đang tìm server mới...")
     
-    -- PHƯƠNG ÁN 1: Hop random (đơn giản nhất)
+    -- Lưu trữ fruit trước khi hop
+    if Settings.AutoStore then
+        storeAllFruits()
+    end
+    
+    -- Cách 1: Hop random
     local success = pcall(function()
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end)
@@ -380,8 +395,8 @@ local function hopToNewServer()
         return
     end
     
-    -- PHƯƠNG ÁN 2: Nếu cách 1 fail, thử cách 2
-    print("⚠️ Cách 1 fail, thử cách 2...")
+    -- Cách 2: Tìm server ít người
+    print("⚠️ Thử cách 2...")
     
     local function getServers()
         local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100"
@@ -405,7 +420,6 @@ local function hopToNewServer()
     end
     
     if #validServers > 0 then
-        -- Chọn server có ít người nhất
         local bestServer = validServers[1]
         for _, server in pairs(validServers) do
             if server.playing < bestServer.playing then
@@ -418,14 +432,16 @@ local function hopToNewServer()
         
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, LocalPlayer)
     else
-        print("❌ Không tìm thấy server khác, thử lại sau")
+        print("❌ Không tìm thấy server khác")
         IsHopping = false
         HopCountdown = false
         NoFruitCount = 0
     end
 end
 
--- HÀM BẮT ĐẦU ĐẾM NGƯỢC HOP
+-- ========================================
+-- HÀM ĐẾM NGƯỢC HOP
+-- ========================================
 local function startHopCountdown()
     if HopCountdown or IsHopping then return end
     
@@ -434,13 +450,11 @@ local function startHopCountdown()
     
     print("🔄 BẮT ĐẦU ĐẾM NGƯỢC " .. HopTimer .. " GIÂY TRƯỚC KHI HOP!")
     
-    -- Hủy thread cũ nếu có
     if HopThread then
         coroutine.close(HopThread)
         HopThread = nil
     end
     
-    -- Tạo thread mới cho đếm ngược
     HopThread = coroutine.create(function()
         while HopCountdown and HopTimer > 0 do
             print("⏱️ Còn " .. HopTimer .. " giây nữa sẽ hop...")
@@ -460,7 +474,6 @@ local function startHopCountdown()
     coroutine.resume(HopThread)
 end
 
--- HÀM HỦY ĐẾM NGƯỢC HOP
 local function cancelHopCountdown()
     if HopCountdown then
         print("✅ Hủy đếm ngược hop (có fruit xuất hiện)")
@@ -473,28 +486,22 @@ local function cancelHopCountdown()
     end
 end
 
--- HÀM KIỂM TRA VÀ XỬ LÝ HOP
+-- ========================================
+-- HÀM KIỂM TRA HOP
+-- ========================================
 local function checkAndHandleHop()
     if not Settings.AutoHop or IsHopping then return end
     
     local fruitCount = scanForFruits()
     
-    -- Nếu KHÔNG có fruit
     if fruitCount == 0 then
         NoFruitCount = NoFruitCount + 1
         
-        -- Nếu đủ số lần kiểm tra không có fruit
         if NoFruitCount >= Settings.MaxNoFruitChecks and not HopCountdown then
             print("⚠️ Đã " .. NoFruitCount .. "/" .. Settings.MaxNoFruitChecks .. " lần không có fruit")
-            -- Lưu trữ fruit trước khi hop
-            if Settings.AutoStore then
-                storeAllFruits()
-            end
-            -- Bắt đầu đếm ngược
             startHopCountdown()
         end
     else
-        -- CÓ fruit: reset bộ đếm và hủy đếm ngược
         if NoFruitCount > 0 then
             NoFruitCount = 0
         end
@@ -504,14 +511,12 @@ local function checkAndHandleHop()
     end
 end
 
--- ============================================
+-- ========================================
 -- VÒNG LẶP CHÍNH
--- ============================================
+-- ========================================
 spawn(function()
-    -- Chọn phe ngay khi vào
-    if Settings.AutoJoinTeam and not JoinedTeam then
-        joinTeam()
-    end
+    -- AUTO JOIN TEAM (CODE CỦA BẠN)
+    autoJoinTeam()
     
     while true do
         wait(Settings.CheckInterval)
@@ -535,7 +540,7 @@ spawn(function()
                 collectFruit(FruitsOnMap[1])
             end
             
-            -- Lưu trữ nếu đầy
+            -- AUTO STORE (CODE CỦA BẠN) - Kiểm tra định kỳ
             if Settings.AutoStore then
                 local fruitInInventory = countFruitsInInventory()
                 if fruitInInventory >= Settings.MaxFruitsInInventory then
@@ -543,19 +548,18 @@ spawn(function()
                 end
             end
             
-            -- KIỂM TRA VÀ XỬ LÝ HOP
+            -- Kiểm tra hop
             checkAndHandleHop()
         end)
     end
 end)
 
--- THEO DÕI FRUIT MỚI XUẤT HIỆN
+-- THEO DÕI FRUIT MỚI
 Workspace.ChildAdded:Connect(function(child)
     if child.Name:find("Fruit") and child:IsA("Model") then
         wait(0.5)
         print("✨ Fruit mới: " .. child.Name)
         
-        -- Reset trạng thái khi có fruit mới
         NoFruitCount = 0
         if HopCountdown then
             cancelHopCountdown()
@@ -576,7 +580,7 @@ Workspace.ChildAdded:Connect(function(child)
     end
 end)
 
--- XÓA ESP KHI FRUIT BIẾN MẤT
+-- XÓA ESP
 Workspace.ChildRemoved:Connect(function(child)
     if child.Name:find("Fruit") then
         if child:FindFirstChild("Handle") then
@@ -588,9 +592,9 @@ Workspace.ChildRemoved:Connect(function(child)
     end
 end)
 
--- ============================================
+-- ========================================
 -- TẠO GUI
--- ============================================
+-- ========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FruitCollectorGUI"
 ScreenGui.ResetOnSpawn = false
@@ -632,8 +636,8 @@ local TeamText = Instance.new("TextLabel")
 TeamText.Size = UDim2.new(1, 0, 0, 25)
 TeamText.Position = UDim2.new(0, 0, 0, 70)
 TeamText.BackgroundTransparency = 1
-TeamText.Text = "Phe: Chưa chọn"
-TeamText.TextColor3 = Color3.fromRGB(255, 200, 100)
+TeamText.Text = "Phe: " .. Settings.DesiredTeam
+TeamText.TextColor3 = Color3.fromRGB(100, 255, 100)
 TeamText.TextScaled = true
 TeamText.Font = Enum.Font.Gotham
 TeamText.Parent = MainFrame
@@ -712,16 +716,6 @@ spawn(function()
             StoredText.Text = "Đã lưu trữ: " .. #StoredFruits
             TimeText.Text = "Thời gian: " .. timeOnServer .. "s"
             
-            -- Phe
-            if LocalPlayer.Team then
-                TeamText.Text = "Phe: " .. tostring(LocalPlayer.Team)
-                TeamText.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else
-                TeamText.Text = "Phe: Chưa chọn"
-                TeamText.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
-            
-            -- Trạng thái hop
             if IsHopping then
                 HopStatusText.Text = "Trạng thái: Đang hop..."
                 HopStatusText.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -741,16 +735,12 @@ spawn(function()
                 HopTimerText.Text = "Đếm ngược: 0s"
             end
             
-            -- Status text
             if Collecting and CurrentFruit then
                 StatusText.Text = "Đang nhặt: " .. CurrentFruit.Name
                 StatusText.TextColor3 = Color3.fromRGB(255, 200, 0)
             elseif fruitOnMap > 0 then
                 StatusText.Text = "Đang tìm fruit..."
                 StatusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-            elseif fruitInInventory >= Settings.MaxFruitsInInventory then
-                StatusText.Text = "Đang lưu trữ..."
-                StatusText.TextColor3 = Color3.fromRGB(100, 200, 255)
             elseif HopCountdown then
                 StatusText.Text = "SẮP HOP: " .. HopTimer .. "s"
                 StatusText.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -762,10 +752,13 @@ spawn(function()
     end
 end)
 
+-- ========================================
+-- KHỞI ĐỘNG
+-- ========================================
 print("===================================")
 print("✅ SCRIPT ĐÃ KHỞI ĐỘNG!")
 print("💰 Beli: " .. getBeli()/1000 .. "k")
-print("🏴‍☠️ Phe: " .. (Settings.TeamToJoin == 1 and "Hải tặc" or "Hải quân"))
+print("🏴‍☠️ Phe mục tiêu: " .. Settings.DesiredTeam)
+print("📦 Auto Store: " .. (Settings.AutoStore and "BẬT" or "TẮT"))
 print("⏱️ Sẽ hop sau " .. Settings.HopDelay .. " giây nếu không có fruit")
-print("📊 Kiểm tra: " .. Settings.MaxNoFruitChecks .. " lần không fruit = " .. Settings.MaxNoFruitChecks*Settings.CheckInterval .. "s + đếm ngược " .. Settings.HopDelay .. "s")
 print("===================================")
