@@ -1,5 +1,5 @@
 -- ========================================
--- DONI HUB - AUTO BOUNTY (CÓ INF SORU TỪ CODE CŨ)
+-- DONI HUB - AUTO BOUNTY (CÓ AUTO TEAM REMOTE)
 -- ========================================
 
 -- Đợi game load
@@ -24,12 +24,40 @@ local replicated = ReplicatedStorage
 -- Đợi nhân vật load
 repeat task.wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 local Root = player.Character.HumanoidRootPart
-local plr = player  -- Giữ nguyên tên biến từ code cũ
-local Energy = plr.Character.Energy.Value  -- Giữ nguyên
-local Sec = 0.1  -- Giữ nguyên
+local plr = player
+local Energy = plr.Character.Energy.Value
+local Sec = 0.1
 
 -- ========================================
--- INFINITE SORU (GIỮ NGUYÊN 100% TỪ CODE CŨ)
+-- TỰ ĐỘNG CHỌN TEAM PIRATES BẰNG REMOTE
+-- ========================================
+task.spawn(function()
+    task.wait(5)
+    
+    local function setTeam(team)
+        pcall(function()
+            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", team)
+        end)
+    end
+    
+    if not player.Team or player.Team.Name ~= "Pirates" then
+        print("🔄 Đang chọn team Pirates...")
+        setTeam("Pirates")
+        task.wait(2)
+        
+        if player.Team and player.Team.Name == "Pirates" then
+            print("✅ Đã chọn team Pirates thành công!")
+        else
+            print("⚠️ Thử lại lần 2...")
+            setTeam("Pirates")
+        end
+    else
+        print("✅ Đã ở team Pirates")
+    end
+end)
+
+-- ========================================
+-- INFINITE SORU (GIỮ NGUYÊN TỪ CODE CŨ)
 -- ========================================
 getInfinity_Ability = function(I, e)
     if not Root then
@@ -62,28 +90,25 @@ getInfinity_Ability = function(I, e)
     end;
 end;
 
--- BẬT INF SORU NGAY LẬP TỨC
+-- BẬT INF SORU
 task.spawn(function()
-    task.wait(3)  -- Đợi game ổn định
+    task.wait(3)
     getInfinity_Ability("Soru", true)
-    print("✅ Đã bật INFINITE SORU từ code cũ!")
+    print("✅ Đã bật INFINITE SORU!")
 end)
 
 -- ========================================
 -- TẠO GUI BÉ XINH
 -- ========================================
 
--- Xóa GUI cũ
 pcall(function() CoreGui.DoniBounty:Destroy() end)
 
--- Tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DoniBounty"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Frame chính
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 150)
 MainFrame.Position = UDim2.new(0, 20, 0.5, -75)
@@ -93,19 +118,16 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 
--- Bo góc
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
--- Viền đỏ (máu)
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Thickness = 1.5
 UIStroke.Color = Color3.fromRGB(255, 50, 50)
 UIStroke.Transparency = 0.3
 UIStroke.Parent = MainFrame
 
--- Thanh tiêu đề
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 30)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 20, 30)
@@ -127,7 +149,7 @@ TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TitleBar
 
--- Cho phép kéo
+-- Kéo thả GUI
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -163,14 +185,12 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Frame nội dung
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, -10, 1, -35)
 ContentFrame.Position = UDim2.new(0, 5, 0, 35)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Layout
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Padding = UDim.new(0, 3)
 UIListLayout.FillDirection = Enum.FillDirection.Vertical
@@ -178,7 +198,6 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 UIListLayout.Parent = ContentFrame
 
--- Hàm tạo dòng
 local function createLine(icon, text, color)
     local line = Instance.new("TextLabel")
     line.Size = UDim2.new(1, 0, 0, 20)
@@ -192,7 +211,6 @@ local function createLine(icon, text, color)
     return line
 end
 
--- Tạo các dòng
 local TimeLine = createLine("⏰", "Thời gian: 00:00", Color3.fromRGB(200, 200, 100))
 local BountyLine = createLine("💰", "Bounty: 0", Color3.fromRGB(255, 200, 100))
 local TargetLine = createLine("🎯", "Mục tiêu: Đang tìm...", Color3.fromRGB(100, 255, 100))
@@ -289,12 +307,10 @@ end
 -- KIỂM TRA PVP CỦA NGƯỜI CHƠI
 -- ========================================
 local function hasPvpOn(targetPlayer)
-    -- Kiểm tra bằng cách xem có attribute PvP không
     if targetPlayer:GetAttribute("PvP") == false then
         return false
     end
     
-    -- Kiểm tra bằng cách xem có trong chiến đấu không
     local char = targetPlayer.Character
     if char then
         local humanoid = char:FindFirstChild("Humanoid")
@@ -315,22 +331,13 @@ local function findTarget()
     local bestDistance = math.huge
     
     for _, otherPlayer in ipairs(Players:GetPlayers()) do
-        -- Bỏ qua bản thân
         if otherPlayer ~= player then
-            
-            -- Kiểm tra level (chỉ săn người kém hơn 100 level)
             local theirLevel = otherPlayer.Data.Level.Value
             if theirLevel < myLevel and (myLevel - theirLevel) <= 100 then
-                
-                -- Kiểm tra PvP
                 if hasPvpOn(otherPlayer) then
-                    
-                    -- Kiểm khoảng cách
                     local char = otherPlayer.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         local distance = (Root.Position - char.HumanoidRootPart.Position).Magnitude
-                        
-                        -- Chọn người gần nhất
                         if distance < bestDistance then
                             bestDistance = distance
                             bestTarget = otherPlayer
@@ -354,25 +361,19 @@ local function attackTarget(target)
     local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetHrp then return end
     
-    -- Cập nhật GUI
     TargetLine.Text = "🎯 Mục tiêu: " .. target.Name
     TargetLine.TextColor3 = Color3.fromRGB(255, 100, 100)
     
-    -- Reset thời gian không có mục tiêu
     noTargetTime = 0
     
-    -- Bay đến gần
     tweenTo(targetHrp.CFrame * CFrame.new(0, 10, 5))
     
-    -- Tấn công liên tục
     while target and target.Character and targetChar:FindFirstChild("Humanoid") and targetChar.Humanoid.Health > 0 do
-        -- Đấm liên tục
         for i = 1, 5 do
             punch()
             task.wait(0.1)
         end
         
-        -- Bay theo nếu cần
         if targetHrp then
             tweenTo(targetHrp.CFrame * CFrame.new(0, 10, 3))
         end
@@ -395,17 +396,14 @@ spawn(function()
     while true do
         task.wait(2)
         
-        -- Tìm mục tiêu mới
         local target = findTarget()
         
         if target then
-            -- Có mục tiêu
             StatusLine.Text = "⚔️ Trạng thái: Đang chiến đấu"
             noTargetTime = 0
             HopLine.Text = "🔄 Hop sau: 30s"
             attackTarget(target)
         else
-            -- Không có mục tiêu
             noTargetTime = noTargetTime + 2
             local timeLeft = 30 - noTargetTime
             if timeLeft < 0 then timeLeft = 0 end
@@ -413,10 +411,8 @@ spawn(function()
             StatusLine.Text = "⚔️ Trạng thái: Đang tìm mục tiêu"
             HopLine.Text = "🔄 Hop sau: " .. timeLeft .. "s"
             
-            -- Bay vòng quanh tìm
             tweenTo(Root.CFrame * CFrame.new(math.random(-50, 50), 0, math.random(-50, 50)))
             
-            -- HOP SAU 30 GIÂY KHÔNG CÓ MỤC TIÊU
             if noTargetTime >= 30 then
                 StatusLine.Text = "⚔️ Trạng thái: Hết mục tiêu, đang hop..."
                 hopServer()
@@ -444,6 +440,7 @@ end)
 -- HOÀN TẤT
 -- ========================================
 print("⚔️ DONI AUTO BOUNTY - ĐÃ SẴN SÀNG!")
+print("👥 Auto team Pirates bằng REMOTE")
 print("🎯 Chỉ săn người kém hơn 100 level")
 print("🔄 Auto hop sau 30s không có mục tiêu")
-print("🌀 INF SORU - ĐÃ BẬT TỪ CODE CŨ")
+print("🌀 INF SORU - ĐÃ BẬT")
